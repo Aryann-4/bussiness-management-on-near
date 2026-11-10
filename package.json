@@ -8,6 +8,7 @@
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
+    "typecheck": "npm --prefix frontend run typecheck",
     "test:contract": "cargo test --manifest-path contracts/near-business/Cargo.toml --lib",
     "build:contract": "cargo build --manifest-path contracts/near-business/Cargo.toml --target wasm32-unknown-unknown --release",
     "install:frontend": "npm --prefix frontend install"

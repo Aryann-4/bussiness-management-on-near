@@ -1,6 +1,7 @@
 import { setupWalletSelector } from "@near-wallet-selector/core";
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
 import { setupModal } from "@near-wallet-selector/modal-ui";
+import { actionCreators } from "@near-js/transactions";
 import "@near-wallet-selector/modal-ui/styles.css";
 import type { Dashboard, InvoiceItemInput } from "./types";
 
@@ -99,15 +100,12 @@ export async function callContract(method: string, options: CallOptions = {}) {
     signerId: accountId,
     receiverId: CONTRACT_ID,
     actions: [
-      {
-        type: "FunctionCall",
-        params: {
-          methodName: method,
-          args: options.args ?? {},
-          gas: options.gas ?? "100000000000000",
-          deposit: options.deposit ?? "0",
-        },
-      },
+      actionCreators.functionCall(
+        method,
+        options.args ?? {},
+        BigInt(options.gas ?? "100000000000000"),
+        BigInt(options.deposit ?? "0"),
+      ),
     ],
   });
   return result;

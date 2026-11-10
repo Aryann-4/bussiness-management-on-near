@@ -103,7 +103,8 @@ judges and visitors can explore the product without a wallet.
 - Invoice lifecycle: **Draft → Sent → Paid**, or **Cancelled**.
 - One-click payment in NEAR from the UI.
 - Dashboard analytics: revenue, outstanding, customer count, invoice counts.
-- Responsive dark UI with an onboarding flow and a seeded sample workspace.
+- Clean, light UI designed for clarity: plain-language labels, a guided getting-started checklist,
+  helpful empty states and a seeded sample workspace.
 
 ### Contract
 - One dashboard per NEAR account.
@@ -134,13 +135,18 @@ near-business-manager/
 │   └── Cargo.toml
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx             # dashboard UI (overview, invoices, customers, products, settings)
+│   │   ├── App.tsx             # shell: header, mode switch, navigation, routing by tab
+│   │   ├── pages/              # Onboarding, Overview, Invoices, Customers, Products, Settings
+│   │   ├── components/         # Icon set and shared UI (stat cards, badges, modal, empty states)
+│   │   ├── seed.ts             # sample workspace used by the demo
 │   │   ├── near.ts             # wallet selector + RPC + typed contract calls
 │   │   ├── demoStore.ts        # local engine mirroring the contract rules
 │   │   ├── money.ts            # yoctoNEAR <-> NEAR formatting
-│   │   ├── types.ts            # shared types
-│   │   └── styles.css          # design system
+│   │   ├── appTypes.ts         # UI-level types
+│   │   ├── types.ts            # shared domain types
+│   │   └── styles.css          # light design system
 │   ├── index.html
+│   ├── tsconfig.json
 │   └── vite.config.ts
 ├── .github/workflows/deploy.yml # GitHub Pages deployment
 └── README.md
