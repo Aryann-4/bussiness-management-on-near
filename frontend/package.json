@@ -11,6 +11,9 @@
   "keywords": [],
   "type": "module",
   "dependencies": {
+    "@near-wallet-selector/core": "^10.1.4",
+    "@near-wallet-selector/modal-ui": "^10.1.4",
+    "@near-wallet-selector/my-near-wallet": "^10.1.4",
     "near-api-js": "^7.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
