@@ -1,11 +1,15 @@
 {
   "name": "near-business-manager",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "On-chain customers, products, invoices and NEAR payments for online businesses",
+  "license": "MIT",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "type": "commonjs"
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "test:contract": "cargo test --manifest-path contracts/near-business/Cargo.toml --lib",
+    "build:contract": "cargo build --manifest-path contracts/near-business/Cargo.toml --target wasm32-unknown-unknown --release",
+    "install:frontend": "npm --prefix frontend install"
+  }
 }
