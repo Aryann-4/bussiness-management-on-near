@@ -19,6 +19,7 @@ import { ToastView } from "./components/ui";
 import Onboarding from "./pages/Onboarding";
 import Overview from "./pages/Overview";
 import Invoices from "./pages/Invoices";
+import Pay from "./pages/Pay";
 import Customers from "./pages/Customers";
 import Products from "./pages/Products";
 import Settings from "./pages/Settings";
@@ -51,6 +52,19 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [theme, setTheme] = useState<Theme>(initialTheme);
+
+  // Shareable customer payment link: ?pay=<ownerAccount>:<invoiceId>
+  const payTarget = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const raw = new URLSearchParams(window.location.search).get("pay");
+    if (!raw) return null;
+    const at = raw.lastIndexOf(":");
+    if (at < 0) return null;
+    const ownerId = decodeURIComponent(raw.slice(0, at)).trim();
+    const invoiceId = Number(raw.slice(at + 1));
+    if (!ownerId || !Number.isInteger(invoiceId) || invoiceId < 1) return null;
+    return { ownerId, invoiceId };
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -188,6 +202,11 @@ export default function App() {
   };
 
   const stats = useMemo(() => demo.statsOf(dashboard), [dashboard]);
+
+  // The payment link bypasses the normal app shell entirely.
+  if (payTarget) {
+    return <Pay ownerId={payTarget.ownerId} invoiceId={payTarget.invoiceId} />;
+  }
 
   const createBusiness = async (input: {
     name: string;

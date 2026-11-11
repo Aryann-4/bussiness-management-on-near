@@ -98,6 +98,24 @@ export default function Invoices({
     if (ok && viewingId === invoice.id) setViewingId(null);
   };
 
+  const copyPaymentLink = async (invoice: Invoice) => {
+    await run("Payment link copied", {
+      demo: () => {
+        throw new Error("Payment links need live mode — switch to Try on NEAR first");
+      },
+      live: async () => {
+        if (!account) throw new Error("Connect a NEAR wallet first");
+        const url = `${window.location.origin}${window.location.pathname}?pay=${encodeURIComponent(account)}:${invoice.id}`;
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch {
+          // Clipboard blocked — show the link instead.
+          window.prompt("Copy the payment link:", url);
+        }
+      },
+    });
+  };
+
   const pay = async (invoice: Invoice) => {
     const ok = await run(`Invoice #${invoice.id} paid`, {
       demo: () => demo.payInvoice(dashboard, invoice.id),
@@ -342,11 +360,13 @@ export default function Invoices({
                         {invoice.status !== "Paid" && invoice.status !== "Cancelled" && (
                           <button
                             className="btn primary small"
-                            onClick={() => pay(invoice)}
+                            onClick={() =>
+                              mode === "demo" ? pay(invoice) : copyPaymentLink(invoice)
+                            }
                             disabled={busy}
                           >
-                            <Icon name="wallet" size={13} />
-                            {mode === "demo" ? "Mark paid" : "Pay"}
+                            <Icon name={mode === "demo" ? "wallet" : "card"} size={13} />
+                            {mode === "demo" ? "Mark paid" : "Payment link"}
                           </button>
                         )}
                         {invoice.status !== "Paid" && invoice.status !== "Cancelled" && (
@@ -390,9 +410,15 @@ export default function Invoices({
                 </button>
               )}
               {viewing.status !== "Paid" && viewing.status !== "Cancelled" && (
-                <button className="btn primary" onClick={() => pay(viewing)} disabled={busy}>
-                  <Icon name="wallet" size={14} />
-                  {mode === "demo" ? "Mark as paid" : "Pay in NEAR"}
+                <button
+                  className="btn primary"
+                  onClick={() =>
+                    mode === "demo" ? pay(viewing) : copyPaymentLink(viewing)
+                  }
+                  disabled={busy}
+                >
+                  <Icon name={mode === "demo" ? "wallet" : "card"} size={14} />
+                  {mode === "demo" ? "Mark as paid" : "Copy payment link"}
                 </button>
               )}
             </>

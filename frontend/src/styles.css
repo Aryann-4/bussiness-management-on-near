@@ -2162,6 +2162,122 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
+/* Customer payment page                                               */
+/* ------------------------------------------------------------------ */
+
+.pay-wrap {
+  display: grid;
+  place-items: start center;
+  padding: 28px 16px 64px;
+}
+
+.pay-card {
+  width: 100%;
+  max-width: 560px;
+  padding: 22px;
+  animation: pop 0.4s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.pay-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.pay-avatar {
+  width: 54px;
+  height: 54px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(140deg, var(--indigo), var(--indigo-2) 60%, #1fb99a);
+  box-shadow: 0 10px 22px -10px rgba(79, 70, 229, 0.8);
+}
+
+.pay-head h2 {
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+.pay-info {
+  margin: 4px 0 14px;
+}
+
+.pay-table {
+  margin-bottom: 12px;
+}
+
+.pay-submit {
+  height: 52px;
+  margin-top: 4px;
+  font-size: 0.95rem;
+}
+
+.pay-success {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-top: 6px;
+  border-radius: 14px;
+  background: var(--mint-soft);
+  border: 1px solid rgba(12, 155, 116, 0.35);
+}
+
+.pay-success .check-icon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--mint);
+  color: #fff;
+}
+
+.pay-success strong {
+  display: block;
+}
+
+.pay-success-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pay-success-sub a {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.pay-cancelled {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-top: 6px;
+  border-radius: 14px;
+  background: var(--amber-soft);
+  border: 1px solid rgba(178, 106, 5, 0.4);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 560px) {
+  .pay-wrap {
+    padding: 16px 12px 48px;
+  }
+
+  .pay-card {
+    padding: 18px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Responsive                                                          */
 /* ------------------------------------------------------------------ */
 

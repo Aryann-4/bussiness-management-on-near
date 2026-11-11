@@ -1,6 +1,6 @@
 import type { Action, Wallet, WalletSelector } from "@near-wallet-selector/core";
 import type { WalletSelectorModal } from "@near-wallet-selector/modal-ui";
-import type { Dashboard, InvoiceItemInput } from "./types";
+import type { Business, Dashboard, Invoice, InvoiceItemInput } from "./types";
 
 export const CONTRACT_ID =
   (import.meta as any).env?.VITE_CONTRACT_ID || "near-business-manager.testnet";
@@ -188,6 +188,14 @@ async function view<T>(method: string, args: Record<string, unknown>): Promise<T
 
 export async function fetchDashboard(accountId: string): Promise<Dashboard | null> {
   return view<Dashboard | null>("get_dashboard", { account_id: accountId });
+}
+
+export async function getInvoice(ownerId: string, invoiceId: number): Promise<Invoice | null> {
+  return view<Invoice | null>("get_invoice", { account_id: ownerId, invoice_id: invoiceId });
+}
+
+export async function getBusiness(accountId: string): Promise<Business | null> {
+  return view<Business | null>("get_business", { account_id: accountId });
 }
 
 type CallOptions = {
