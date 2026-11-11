@@ -266,7 +266,9 @@ export default function Invoices({
                 </div>
                 <div className="summary-row total">
                   <span>Total due</span>
-                  <span>{formatNear(preview.total.toString(), currency)}</span>
+                  <span key={preview.total.toString()} className="amount-pop">
+                    {formatNear(preview.total.toString(), currency)}
+                  </span>
                 </div>
                 <button className="btn primary block" type="submit" disabled={!canSubmit}>
                   {busy ? "Creating…" : "Create invoice"}
@@ -311,14 +313,18 @@ export default function Invoices({
               <tbody>
                 {[...dashboard.invoices].reverse().map((invoice) => (
                   <tr key={invoice.id}>
-                    <td className="cell-strong mono">#{String(invoice.id).padStart(4, "0")}</td>
-                    <td>{customerName(invoice.customer_id)}</td>
-                    <td>{formatNear(invoice.total, currency)}</td>
-                    <td>
+                    <td data-label="Invoice" className="cell-strong mono">
+                      #{String(invoice.id).padStart(4, "0")}
+                    </td>
+                    <td data-label="Customer">{customerName(invoice.customer_id)}</td>
+                    <td data-label="Total">{formatNear(invoice.total, currency)}</td>
+                    <td data-label="Status">
                       <StatusBadge status={invoice.status} />
                     </td>
-                    <td className="muted">{formatDate(invoice.due_date)}</td>
-                    <td>
+                    <td data-label="Due" className="muted">
+                      {formatDate(invoice.due_date)}
+                    </td>
+                    <td className="cell-actions">
                       <div className="row-actions">
                         <button className="btn ghost small" onClick={() => setViewingId(invoice.id)}>
                           View
@@ -415,10 +421,10 @@ export default function Invoices({
                 <tbody>
                   {viewing.items.map((item, index) => (
                     <tr key={index}>
-                      <td>{item.description}</td>
-                      <td>{item.quantity}</td>
-                      <td>{formatNear(item.unit_price, currency)}</td>
-                      <td>{formatNear(item.amount, currency)}</td>
+                      <td data-label="Description">{item.description}</td>
+                      <td data-label="Qty">{item.quantity}</td>
+                      <td data-label="Unit">{formatNear(item.unit_price, currency)}</td>
+                      <td data-label="Amount">{formatNear(item.amount, currency)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -110,13 +110,17 @@ export default function Overview({
                   <tbody>
                     {recent.map((invoice) => (
                       <tr key={invoice.id}>
-                        <td className="cell-strong mono">#{String(invoice.id).padStart(4, "0")}</td>
-                        <td>{customerName(invoice.customer_id)}</td>
-                        <td>{formatNear(invoice.total, currency)}</td>
-                        <td>
+                        <td data-label="Invoice" className="cell-strong mono">
+                          #{String(invoice.id).padStart(4, "0")}
+                        </td>
+                        <td data-label="Customer">{customerName(invoice.customer_id)}</td>
+                        <td data-label="Total">{formatNear(invoice.total, currency)}</td>
+                        <td data-label="Status">
                           <StatusBadge status={invoice.status} />
                         </td>
-                        <td className="muted">{formatDate(invoice.due_date)}</td>
+                        <td data-label="Due" className="muted">
+                          {formatDate(invoice.due_date)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -167,6 +171,12 @@ export default function Overview({
               <span className="progress-tag">
                 {steps.length - remaining}/{steps.length}
               </span>
+            </div>
+            <div className="progress-track" aria-hidden="true">
+              <div
+                className="progress-fill"
+                style={{ width: `${((steps.length - remaining) / steps.length) * 100}%` }}
+              />
             </div>
             <ul className="checklist">
               {steps.map((step) => (

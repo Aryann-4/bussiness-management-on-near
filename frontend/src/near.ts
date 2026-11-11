@@ -1,8 +1,5 @@
-import { setupWalletSelector } from "@near-wallet-selector/core";
-import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
-import { setupModal } from "@near-wallet-selector/modal-ui";
-import { actionCreators } from "@near-js/transactions";
-import "@near-wallet-selector/modal-ui/styles.css";
+import type { Action, Wallet, WalletSelector } from "@near-wallet-selector/core";
+import type { WalletSelectorModal } from "@near-wallet-selector/modal-ui";
 import type { Dashboard, InvoiceItemInput } from "./types";
 
 export const CONTRACT_ID =
@@ -10,20 +7,50 @@ export const CONTRACT_ID =
 export const NETWORK = "testnet";
 export const RPC_URL = "https://rpc.testnet.near.org";
 
-type Selector = Awaited<ReturnType<typeof setupWalletSelector>>;
-type Wallet = Awaited<ReturnType<Selector["wallet"]>>;
-
-let selector: Selector | null = null;
-let modal: ReturnType<typeof setupModal> | null = null;
+let selector: WalletSelector | null = null;
+let modal: WalletSelectorModal | null = null;
 let wallet: Wallet | null = null;
+let signAction:
+  | ((methodName: string, args: object, gas?: bigint, deposit?: bigint) => Action)
+  | null = null;
 
-export async function initWallet() {
+/**
+ * Wallet libraries are large, so they are loaded on demand. Opening the app in
+ * demo mode never downloads them — only switching to live mode does.
+ */
+export async function initWallet(): Promise<WalletSelector> {
   if (selector) return selector;
-  selector = await setupWalletSelector({
+
+  const [core, modalUi, myNear, meteor, here, nightly, sender] = await Promise.all([
+    import("@near-wallet-selector/core"),
+    import("@near-wallet-selector/modal-ui"),
+    import("@near-wallet-selector/my-near-wallet"),
+    import("@near-wallet-selector/meteor-wallet"),
+    import("@near-wallet-selector/here-wallet"),
+    import("@near-wallet-selector/nightly"),
+    import("@near-wallet-selector/sender"),
+    import("@near-wallet-selector/modal-ui/styles.css"),
+  ]);
+
+  signAction = core.actionCreators.functionCall as typeof signAction;
+
+  selector = await core.setupWalletSelector({
     network: NETWORK,
-    modules: [setupMyNearWallet()],
+    modules: [
+      myNear.setupMyNearWallet(),
+      meteor.setupMeteorWallet(),
+      here.setupHereWallet(),
+      nightly.setupNightly(),
+      sender.setupSender(),
+    ],
   });
-  modal = setupModal(selector, { contractId: CONTRACT_ID });
+
+  modal = modalUi.setupModal(selector, {
+    contractId: CONTRACT_ID,
+    theme: "light",
+    description: "Choose a NEAR testnet wallet to connect. Your keys never leave your wallet.",
+  });
+
   return selector;
 }
 
@@ -100,7 +127,7 @@ export async function callContract(method: string, options: CallOptions = {}) {
     signerId: accountId,
     receiverId: CONTRACT_ID,
     actions: [
-      actionCreators.functionCall(
+      signAction!(
         method,
         options.args ?? {},
         BigInt(options.gas ?? "100000000000000"),
@@ -155,7 +182,7 @@ export const live = {
         name: product.name,
         price: product.price,
         active: !product.active,
-      }
+      },
     }),
 
   removeProduct: (product_id: number) =>

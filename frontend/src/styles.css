@@ -1462,6 +1462,325 @@ textarea:focus,
   }
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Ambient background + motion                                         */
+/* ------------------------------------------------------------------ */
+
+body {
+  background: var(--bg);
+  min-height: 100dvh;
+}
+
+.orbs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.6;
+  will-change: transform;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+
+.orb-a {
+  width: min(560px, 80vw);
+  height: min(560px, 80vw);
+  top: -200px;
+  left: -140px;
+  background: radial-gradient(circle at 35% 35%, #dde4ff 0%, rgba(221, 228, 255, 0) 68%);
+}
+
+.orb-b {
+  width: min(500px, 76vw);
+  height: min(500px, 76vw);
+  top: -180px;
+  right: -140px;
+  background: radial-gradient(circle at 60% 40%, #d7f8ec 0%, rgba(215, 248, 236, 0) 66%);
+  animation-delay: -7s;
+}
+
+.orb-c {
+  width: min(680px, 92vw);
+  height: min(680px, 92vw);
+  bottom: -360px;
+  left: 18%;
+  background: radial-gradient(circle at 50% 50%, #ece6ff 0%, rgba(236, 230, 255, 0) 70%);
+  animation-delay: -13s;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+}
+
+.page-transition {
+  animation: fadeUp 0.34s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.notice {
+  animation: fadeUp 0.4s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.hero-copy {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.hero .form-card {
+  animation: fadeUp 0.55s 0.06s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.feature {
+  animation: fadeUp 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.feature:nth-child(1) {
+  animation-delay: 0.12s;
+}
+
+.feature:nth-child(2) {
+  animation-delay: 0.19s;
+}
+
+.feature:nth-child(3) {
+  animation-delay: 0.26s;
+}
+
+.brand-mark svg {
+  animation: floaty 6s ease-in-out infinite;
+}
+
+/* Stat cards ------------------------------------------------------- */
+
+.stat {
+  transition: transform 0.22s cubic-bezier(0.22, 0.8, 0.3, 1), box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  animation: fadeUp 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.stats-grid > .stat:nth-child(1) {
+  animation-delay: 0.04s;
+}
+
+.stats-grid > .stat:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.stats-grid > .stat:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.stats-grid > .stat:nth-child(4) {
+  animation-delay: 0.22s;
+}
+
+.stat:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-2);
+}
+
+.stat-value {
+  animation: valuePulse 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.amount-pop {
+  display: inline-block;
+  animation: valuePulse 0.3s ease both;
+}
+
+/* Checklist -------------------------------------------------------- */
+
+.progress-track {
+  height: 6px;
+  margin: 10px 0 14px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--mint), #4ade9a);
+  transition: width 0.7s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.check-item {
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.check-item:hover {
+  transform: translateX(2px);
+}
+
+.check-item.done .check-icon {
+  animation: popIn 0.4s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+/* Buttons ---------------------------------------------------------- */
+
+.btn {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn.primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.3) 50%, transparent 68%);
+  transform: translateX(-130%);
+  transition: transform 0.65s ease;
+}
+
+.btn.primary:hover:not(:disabled)::after {
+  transform: translateX(130%);
+}
+
+.icon-btn {
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.icon-btn:hover:not(:disabled) {
+  transform: scale(1.07);
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.nav-item {
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.nav-item:hover {
+  transform: translateX(2px);
+}
+
+/* Cards, empty states, tables ------------------------------------- */
+
+.card {
+  transition: box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.empty {
+  animation: fadeUp 0.35s ease both;
+}
+
+.toast {
+  animation: toastIn 0.32s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.modal {
+  animation: pop 0.22s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.overlay {
+  animation: fade 0.18s ease both;
+}
+
+/* Keyframes -------------------------------------------------------- */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-4deg);
+  }
+}
+
+@keyframes valuePulse {
+  from {
+    opacity: 0.3;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(26px, 20px, 0) scale(1.06);
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    opacity: 0.5;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Responsive                                                          */
 /* ------------------------------------------------------------------ */
@@ -1495,39 +1814,84 @@ textarea:focus,
 }
 
 @media (max-width: 900px) {
+  .app {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
   .shell {
     grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .sidebar {
     position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-
-  .nav {
-    flex-direction: row;
-    width: 100%;
-    overflow-x: auto;
-    padding: 6px;
-    gap: 2px;
-  }
-
-  .nav-item {
-    flex: 1 0 auto;
-    justify-content: center;
-    white-space: nowrap;
+    display: block;
   }
 
   .side-card {
-    flex: 1 1 200px;
+    display: none;
+  }
+
+  .nav {
+    position: fixed;
+    left: 50%;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 90;
+    width: min(540px, calc(100% - 24px));
+    flex-direction: row;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 18px 44px -18px rgba(16, 24, 40, 0.45);
+  }
+
+  .nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    height: auto;
+    padding: 7px 2px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .nav-item:hover {
+    transform: none;
+  }
+
+  .nav-item svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    max-width: none;
   }
 }
 
 @media (max-width: 720px) {
   .app {
-    padding: 16px 16px 60px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .connect-card {
+    margin: 30px auto;
+    padding: 26px 20px;
+  }
+
+  .card {
+    border-radius: 18px;
   }
 
   .inline-form {
@@ -1539,7 +1903,7 @@ textarea:focus,
   }
 
   .line-item {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) 84px;
     gap: 8px;
   }
 
@@ -1549,8 +1913,111 @@ textarea:focus,
     border-radius: var(--radius-sm);
   }
 
+  /* Tables become stacked cards */
+  .table-wrap {
+    margin: 0;
+    overflow: visible;
+  }
+
   .table {
-    min-width: 520px;
+    min-width: 0;
+    display: block;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .table tbody tr {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-2);
+    animation: fadeUp 0.28s ease both;
+  }
+
+  .table tbody tr:hover td {
+    background: transparent;
+  }
+
+  .table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    text-align: right;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--soft);
+    text-align: left;
+  }
+
+  .table td:first-child {
+    font-size: 0.95rem;
+    padding-bottom: 4px;
+  }
+
+  .table td.cell-actions {
+    justify-content: flex-end;
+    padding-top: 6px;
+  }
+
+  .table td.cell-actions::before {
+    content: none;
+  }
+
+  .table td.cell-actions .row-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .modal .table td {
+    text-align: right;
+  }
+
+  /* Modal becomes a bottom sheet */
+  .overlay {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 22px 22px 0 0;
+    animation: sheetUp 0.3s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .modal-head {
+    padding: 18px 18px 14px;
+  }
+
+  .modal-body {
+    padding: 16px 18px;
+  }
+
+  .modal-actions {
+    padding: 14px 18px;
+    position: sticky;
+    bottom: 0;
   }
 }
 
@@ -1569,26 +2036,63 @@ textarea:focus,
 
   .top-actions {
     width: 100%;
+    gap: 8px;
   }
 
   .mode-pill {
-    flex: 1;
+    flex: 1 1 100%;
+    justify-content: center;
+    max-width: none;
+  }
+
+  .top-actions .btn {
+    flex: 1 1 0;
   }
 
   .card {
     padding: 18px;
-    border-radius: 18px;
   }
 
   .page-head h1 {
     font-size: 1.35rem;
   }
 
-  .toast {
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    max-width: none;
+  .check-item {
+    flex-wrap: wrap;
+  }
+
+  .check-item .btn {
+    margin-left: auto;
+  }
+
+  .info-list > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .info-list dd {
+    text-align: left;
+  }
+}
+
+@media (max-width: 400px) {
+  .app {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .brand-text p {
+    display: none;
+  }
+
+  .nav-item {
+    font-size: 0.61rem;
+  }
+
+  .btn.small {
+    height: 32px;
+    padding: 0 10px;
   }
 }
 
@@ -1597,6 +2101,15 @@ textarea:focus,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  .orb {
+    animation: none;
+  }
+
+  .btn.primary::after {
+    display: none;
   }
 }

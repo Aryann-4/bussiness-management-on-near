@@ -105,6 +105,10 @@ judges and visitors can explore the product without a wallet.
 - Dashboard analytics: revenue, outstanding, customer count, invoice counts.
 - Clean, light UI designed for clarity: plain-language labels, a guided getting-started checklist,
   helpful empty states and a seeded sample workspace.
+- Motion with purpose: page transitions, staggered cards, animated totals and a live checklist
+  progress bar — all disabled automatically for users who prefer reduced motion.
+- Fully responsive: two-column desktop layout, stacked forms and tables on phones, and an
+  app-style bottom navigation on mobile.
 
 ### Contract
 - One dashboard per NEAR account.
@@ -119,7 +123,8 @@ judges and visitors can explore the product without a wallet.
 ### Frontend
 - **Demo mode** — fully functional with local state, no wallet required.
 - **Live mode** — reads via NEAR RPC and writes via
-  [NEAR Wallet Selector](https://github.com/near/wallet-selector) (MyNearWallet).
+  [NEAR Wallet Selector](https://github.com/near/wallet-selector) with MyNearWallet, Meteor,
+  HERE, Nightly and Sender. The wallet stack is lazy-loaded, so the demo stays light.
 - Money is handled as `u128` yoctoNEAR strings end-to-end; the UI formats to NEAR.
 - Vite + React + TypeScript, no UI framework lock-in.
 
@@ -159,7 +164,7 @@ near-business-manager/
 | Smart contract | Rust + `near-sdk 5.30` |
 | Network | NEAR testnet |
 | Frontend | React 18, TypeScript, Vite 5 |
-| Wallet | `@near-wallet-selector` (MyNearWallet) |
+| Wallet | `@near-wallet-selector` (MyNearWallet, Meteor, HERE, Nightly, Sender) |
 | Reads | NEAR JSON-RPC view calls |
 | Hosting | GitHub Pages |
 

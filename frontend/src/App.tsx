@@ -203,6 +203,12 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="orbs" aria-hidden="true">
+        <span className="orb orb-a" />
+        <span className="orb orb-b" />
+        <span className="orb orb-c" />
+      </div>
+
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
@@ -321,34 +327,36 @@ export default function App() {
           </aside>
 
           <main className="main">
-            {tab === "overview" && (
-              <Overview dashboard={dashboard} stats={stats} onNavigate={setTab} />
-            )}
-            {tab === "invoices" && (
-              <Invoices
-                mode={mode}
-                account={account}
-                dashboard={dashboard}
-                busy={busy}
-                run={run}
-                onGoCustomers={() => setTab("customers")}
-              />
-            )}
-            {tab === "customers" && (
-              <Customers mode={mode} dashboard={dashboard} busy={busy} run={run} />
-            )}
-            {tab === "products" && (
-              <Products mode={mode} dashboard={dashboard} busy={busy} run={run} />
-            )}
-            {tab === "settings" && (
-              <Settings
-                mode={mode}
-                dashboard={dashboard}
-                busy={busy}
-                run={run}
-                onReset={resetDemo}
-              />
-            )}
+            <div className="page-transition" key={tab}>
+              {tab === "overview" && (
+                <Overview dashboard={dashboard} stats={stats} onNavigate={setTab} />
+              )}
+              {tab === "invoices" && (
+                <Invoices
+                  mode={mode}
+                  account={account}
+                  dashboard={dashboard}
+                  busy={busy}
+                  run={run}
+                  onGoCustomers={() => setTab("customers")}
+                />
+              )}
+              {tab === "customers" && (
+                <Customers mode={mode} dashboard={dashboard} busy={busy} run={run} />
+              )}
+              {tab === "products" && (
+                <Products mode={mode} dashboard={dashboard} busy={busy} run={run} />
+              )}
+              {tab === "settings" && (
+                <Settings
+                  mode={mode}
+                  dashboard={dashboard}
+                  busy={busy}
+                  run={run}
+                  onReset={resetDemo}
+                />
+              )}
+            </div>
           </main>
         </div>
       )}

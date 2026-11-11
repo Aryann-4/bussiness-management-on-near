@@ -142,15 +142,17 @@ export default function Products({
               <tbody>
                 {dashboard.products.map((product) => (
                   <tr key={product.id}>
-                    <td className="cell-strong">{product.name}</td>
-                    <td>{formatNear(product.price, currency)}</td>
-                    <td>
+                    <td data-label="Name" className="cell-strong">
+                      {product.name}
+                    </td>
+                    <td data-label="Price">{formatNear(product.price, currency)}</td>
+                    <td data-label="Status">
                       <span className={`badge ${product.active ? "paid" : "draft"}`}>
                         <span className="badge-dot" />
                         {product.active ? "Active" : "Archived"}
                       </span>
                     </td>
-                    <td>
+                    <td className="cell-actions">
                       <div className="row-actions">
                         <button className="btn small" onClick={() => toggle(product)} disabled={busy}>
                           {product.active ? "Archive" : "Reactivate"}

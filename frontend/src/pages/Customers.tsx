@@ -111,11 +111,17 @@ export default function Customers({
               <tbody>
                 {dashboard.customers.map((customer) => (
                   <tr key={customer.id}>
-                    <td className="cell-strong">{customer.name}</td>
-                    <td className="muted">{customer.email || "—"}</td>
-                    <td>{invoiceCount(customer)}</td>
-                    <td className="muted">{formatDate(customer.created_at)}</td>
-                    <td>
+                    <td data-label="Name" className="cell-strong">
+                      {customer.name}
+                    </td>
+                    <td data-label="Email" className="muted">
+                      {customer.email || "—"}
+                    </td>
+                    <td data-label="Invoices">{invoiceCount(customer)}</td>
+                    <td data-label="Added" className="muted">
+                      {formatDate(customer.created_at)}
+                    </td>
+                    <td className="cell-actions">
                       <div className="row-actions">
                         <button
                           className="btn danger small"

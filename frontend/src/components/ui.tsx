@@ -37,7 +37,9 @@ export function StatCard({
         <Icon name={icon} size={19} />
       </div>
       <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
+      <div className="stat-value" key={value}>
+        {value}
+      </div>
       <div className="stat-hint">{hint}</div>
     </div>
   );
