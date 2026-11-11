@@ -13,6 +13,7 @@ import {
 } from "./near";
 import { shortAccount } from "./money";
 import { Icon, type IconName } from "./components/Icon";
+import { Logo } from "./components/Logo";
 import { ToastView } from "./components/ui";
 import Onboarding from "./pages/Onboarding";
 import Overview from "./pages/Overview";
@@ -30,6 +31,16 @@ const NAV: { id: Tab; label: string; icon: IconName }[] = [
   { id: "settings", label: "Settings", icon: "settings" },
 ];
 
+type Theme = "light" | "dark";
+
+function initialTheme(): Theme {
+  const attr = document.documentElement.dataset.theme;
+  if (attr === "light" || attr === "dark") return attr;
+  const saved = localStorage.getItem("nbm:theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function App() {
   const [mode, setMode] = useState<Mode>("demo");
   const [account, setAccount] = useState<string | null>(demo.DEMO_ACCOUNT);
@@ -38,6 +49,13 @@ export default function App() {
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem("nbm:theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const savedMode = localStorage.getItem("nbm:mode");
@@ -120,6 +138,7 @@ export default function App() {
       await refreshLive(accountId);
       notify("success", `Connected to ${shortAccount(accountId)}`);
     } catch (error) {
+      console.error("Wallet connection failed", error);
       notify("error", error instanceof Error ? error.message : "Wallet connection failed");
     } finally {
       setConnecting(false);
@@ -212,7 +231,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
-            <Icon name="spark" size={22} />
+            <Logo size={28} />
           </div>
           <div className="brand-text">
             <h1>NEAR Business Manager</h1>
@@ -221,6 +240,18 @@ export default function App() {
         </div>
 
         <div className="top-actions">
+          <button
+            className="icon-btn theme-toggle"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+            title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+            aria-pressed={theme === "dark"}
+          >
+            <span className={`theme-icon ${theme}`}>
+              <Icon name={theme === "light" ? "moon" : "sun"} size={17} />
+            </span>
+          </button>
+
           <span className={`mode-pill ${mode}`}>
             <span className="mode-dot" />
             {mode === "demo"

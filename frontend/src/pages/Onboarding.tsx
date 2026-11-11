@@ -41,6 +41,14 @@ export default function Onboarding({
   return (
     <div className="hero">
       <section className="hero-copy">
+        <div className="hero-float" aria-hidden="true">
+          <span className="float-chip chip-a">
+            <Icon name="wallet" size={14} /> +24.5 NEAR received
+          </span>
+          <span className="float-chip chip-b">
+            <Icon name="check" size={14} /> Invoice paid
+          </span>
+        </div>
         <span className="eyebrow">
           <Icon name="spark" size={15} />
           Everything in one place

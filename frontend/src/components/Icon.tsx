@@ -18,7 +18,9 @@ export type IconName =
   | "chart"
   | "info"
   | "clock"
-  | "shield";
+  | "shield"
+  | "sun"
+  | "moon";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -126,6 +128,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="m8.8 12 2.2 2.2 4.2-4.2" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.4 5.4l1.4 1.4M17.2 17.2l1.4 1.4M18.6 5.4l-1.4 1.4M6.8 17.2l-1.4 1.4" />
+    </>
+  ),
+  moon: <path d="M20.4 14.4A8.6 8.6 0 0 1 9.6 3.6a8.8 8.8 0 1 0 10.8 10.8z" />,
 };
 
 export function Icon({

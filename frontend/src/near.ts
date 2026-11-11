@@ -47,7 +47,7 @@ export async function initWallet(): Promise<WalletSelector> {
 
   modal = modalUi.setupModal(selector, {
     contractId: CONTRACT_ID,
-    theme: "light",
+    theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light",
     description: "Choose a NEAR testnet wallet to connect. Your keys never leave your wallet.",
   });
 

@@ -105,8 +105,12 @@ judges and visitors can explore the product without a wallet.
 - Dashboard analytics: revenue, outstanding, customer count, invoice counts.
 - Clean, light UI designed for clarity: plain-language labels, a guided getting-started checklist,
   helpful empty states and a seeded sample workspace.
-- Motion with purpose: page transitions, staggered cards, animated totals and a live checklist
-  progress bar — all disabled automatically for users who prefer reduced motion.
+- Light and dark themes with a one-click toggle in the header. The choice is saved and the
+  system preference is used on the first visit.
+- A custom logo: rising bars, a growth arrow and a NEAR coin.
+- Motion with purpose: page transitions, staggered cards, floating hero chips, animated totals,
+  logo sheen, a live checklist progress bar and press feedback — all disabled automatically for
+  users who prefer reduced motion.
 - Fully responsive: two-column desktop layout, stacked forms and tables on phones, and an
   app-style bottom navigation on mobile.
 
@@ -125,6 +129,8 @@ judges and visitors can explore the product without a wallet.
 - **Live mode** — reads via NEAR RPC and writes via
   [NEAR Wallet Selector](https://github.com/near/wallet-selector) with MyNearWallet, Meteor,
   HERE, Nightly and Sender. The wallet stack is lazy-loaded, so the demo stays light.
+- Browser-safe NEAR libraries: `src/polyfills.ts` provides the Node globals (`Buffer`, `global`)
+  that some wallet packages expect, so wallet setup works on a plain static host like GitHub Pages.
 - Money is handled as `u128` yoctoNEAR strings end-to-end; the UI formats to NEAR.
 - Vite + React + TypeScript, no UI framework lock-in.
 
