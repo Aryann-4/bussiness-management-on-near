@@ -101,7 +101,8 @@ judges and visitors can explore the product without a wallet.
 - **Customer payment links** — every invoice has a shareable URL (`?pay=<ownerAccount>:<invoiceId>`) that
   opens a read-only checkout page. The customer signs from their own wallet; the contract forwards the
   deposit to the business owner. Optional **Sign in with Google** via NEAR Auth (testnet) is available on
-  the checkout page for guest identification.
+  the checkout page when run on `http://localhost:3000` (the only callback origin the shared testnet Auth0
+  client accepts); on other origins a note explains how to enable your own tenant or run locally.
 - Product/service catalogue with archive + delete.
 - Invoice builder with multiple line items, live totals and automatic tax.
 - Invoice lifecycle: **Draft → Sent → Paid**, or **Cancelled**.
@@ -257,7 +258,7 @@ cp .env.example .env      # optional: point at another contract
 npm run dev
 ```
 
-Open <http://localhost:5173>. The app starts in demo mode; switch to NEAR testnet in the header to
+Open <http://localhost:3000>. The app starts in demo mode; switch to NEAR testnet in the header to
 connect a wallet.
 
 ```bash
@@ -349,9 +350,12 @@ real transactions.
 - **The demo engine is not the contract.** Demo mode mirrors the rules in `demoStore.ts` for a
   wallet-free experience. Live mode always reads and writes the deployed contract.
 - **Guest checkout = identifying, not paying, with Google.** The checkout page's *Sign in with Google*
-  button is a real NEAR Auth (Auth0) login on testnet, but the JS SDK doesn't yet ship universal-account
-  derivation for the browser, so the final signature still goes through the customer's NEAR wallet.
-  The shared testnet Auth0 client is for development only.
+  button is a real NEAR Auth (Auth0) login — but only on `http://localhost:3000`, the one callback
+  origin the shared testnet client trusts. The shared client rejects our GitHub Pages origin with
+  "Callback URL mismatch", so the deployed demo shows a how-to-enable note instead of a broken button.
+  Even locally, the browser SDK can't derive universal accounts yet, so settlement still signs via
+  your wallet. To use your own Auth0 tenant (your own origin allowed), set `VITE_FAST_AUTH_CLIENT_ID`
+  (and optionally `VITE_FAST_AUTH_DOMAIN` / `VITE_FAST_AUTH_SIGNING_AUDIENCE`) at build time.
 - **Payment links reveal the invoice.** `?pay=<owner>:<invoiceId>` exposes the invoice id and amounts
   (invoices are public on-chain regardless). Treat the link as an identifier and avoid sharing it publicly.
 - **Reliance on the indexer-free RPC.** Views use `rpc.testnet.near.org`; a production app should
