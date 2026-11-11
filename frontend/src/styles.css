@@ -415,7 +415,7 @@ a:hover {
   align-items: start;
 }
 
-.sidebar {
+.shell > .sidebar {
   position: sticky;
   top: 20px;
   display: flex;
@@ -2396,7 +2396,7 @@ body {
     gap: 0;
   }
 
-  .sidebar {
+  .shell > .sidebar {
     position: static;
     display: block;
   }

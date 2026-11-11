@@ -116,31 +116,46 @@ export function detectInjectedWallet(): { id: string; name: string } | null {
   return { id: preferred.id, name: preferred.name };
 }
 
+let connecting: Promise<string | null> | null = null;
+
 export async function connectWallet(): Promise<string | null> {
-  const s = await initWallet();
-  if (s.isSignedIn()) {
-    wallet = await s.wallet();
-    return s.store.getState().accounts[0]?.accountId ?? null;
-  }
+  // De-duplicate concurrent connect attempts so one click can never open
+  // multiple wallet popups / re-open the Meteor window repeatedly.
+  if (connecting) return connecting;
 
-  // Use the wallet that is already activated in this browser, if any.
-  const installed = detectInjectedWallet();
-  if (installed) {
-    try {
-      const injected = await s.wallet(installed.id);
-      // The detected wallets are always injected; the union type is wider.
-      const accounts = await (injected as any).signIn({ contractId: CONTRACT_ID });
-      wallet = injected;
-      const accountId =
-        accounts?.[0]?.accountId ?? s.store.getState().accounts[0]?.accountId ?? null;
-      if (accountId) return accountId;
-    } catch {
-      // Extension not ready or the user dismissed it — fall back to the modal.
+  const run = (async (): Promise<string | null> => {
+    const s = await initWallet();
+    if (s.isSignedIn()) {
+      wallet = await s.wallet();
+      return s.store.getState().accounts[0]?.accountId ?? null;
     }
-  }
 
-  modal?.show();
-  return null;
+    // Use the wallet that is already activated in this browser, if any.
+    const installed = detectInjectedWallet();
+    if (installed) {
+      try {
+        const injected = await s.wallet(installed.id);
+        // The detected wallets are always injected; the union type is wider.
+        const accounts = await (injected as any).signIn({ contractId: CONTRACT_ID });
+        wallet = injected;
+        const accountId =
+          accounts?.[0]?.accountId ?? s.store.getState().accounts[0]?.accountId ?? null;
+        if (accountId) return accountId;
+      } catch {
+        // Extension not ready or the user dismissed it — fall back to the modal.
+      }
+    }
+
+    modal?.show();
+    return null;
+  })();
+
+  connecting = run;
+  try {
+    return await run;
+  } finally {
+    connecting = null;
+  }
 }
 
 export async function showWalletModal(): Promise<void> {
