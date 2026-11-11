@@ -89,7 +89,11 @@ const INJECTED_WALLETS: Array<{
 /** The wallet-selector id of the wallet the user connected with last time. */
 function lastWalletId(): string | null {
   try {
-    return localStorage.getItem("near-wallet-selector:selectedWalletId");
+    // Wallet Selector stores JSON, so a wallet id is saved as `"meteor-wallet"`.
+    const raw = localStorage.getItem("near-wallet-selector:selectedWalletId");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : null;
   } catch {
     return null;
   }
