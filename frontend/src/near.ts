@@ -171,7 +171,7 @@ async function view<T>(method: string, args: Record<string, unknown>): Promise<T
       id: "near-business-manager",
       method: "query",
       params: {
-        request_type: "call",
+        request_type: "call_function",
         finality: "final",
         account_id: CONTRACT_ID,
         method_name: method,
