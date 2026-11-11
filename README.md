@@ -18,6 +18,7 @@
 - [Live links](#live-links)
 - [Try it in 60 seconds](#try-it-in-60-seconds)
 - [Features](#features)
+- [Payments and guest checkout](#payments-and-guest-checkout)
 - [Architecture](#architecture)
 - [Data model](#data-model)
 - [Contract API](#contract-api)
@@ -142,6 +143,95 @@ judges and visitors can explore the product without a wallet.
   that some wallet packages expect, so wallet setup works on a plain static host like GitHub Pages.
 - Money is handled as `u128` yoctoNEAR strings end-to-end; the UI formats to NEAR.
 - Vite + React + TypeScript, no UI framework lock-in.
+
+---
+
+## Payments and guest checkout
+
+This is the part of the project that deserves a clear-eyed explanation — because the demo does
+**not** yet do what a Stripe checkout does, and it's important to understand both what it does
+today and where it goes.
+
+### How an invoice gets paid
+
+There are exactly two authorised ways for money to move:
+
+1. **Wallet path (works today, everywhere).** The customer opens the shareable payment link,
+   connects their NEAR wallet, and signs `pay_invoice(owner_id, invoice_id)` with exactly the
+   invoice total attached as deposit. The smart contract verifies `attached_deposit == total`,
+   flips the invoice to `Paid`, records the NEP-297 `invoice_paid` event, and forwards the
+   attached NEAR to the business owner atomically. No relayer, no custody, no off-chain bookkeeping.
+2. **Guest path (sign in with Google).** The customer signs in with a Google account through
+   NEAR Auth (Auth0). Auth0 issues a JWT, NEAR's on-chain guard verifies it, and the MPC network
+   derives a unique key for that Google identity — no seed phrase, no extension, no custody. The
+   account this key controls is a NEAR **universal account**.
+
+### What "guest" means here — and what it does not mean (yet)
+
+In the demo, signing in with Google on the checkout page is *identification*: it proves to the
+merchant that a real person with a Google account is opening the invoice. It is honest, useful
+(and it keeps strangers from being able to mark an invoice paid without an authenticated session),
+but it is **not yet a full checkout** in the consumer sense. Specifically:
+
+- The Google sign-in currently works on `http://localhost:3000` — the only callback origin the
+  shared NEAR Auth testnet Auth0 application authorizes. The deployed GitHub Pages origin is not
+  on that allowlist, so the deployed demo shows a clear explanation instead of the sign-in button.
+  To use your own origin you need sponsorship from NEAR, or your own attested custom issuer
+  (see [Roadmap](#roadmap)).
+- The final signature today is produced by the customer's **wallet**, not by the MPC-derived key.
+  The browser SDK does not yet ship the universal-account abstraction layer end-to-end for web
+  apps, so a brand-new Google account cannot instantly become a spendable NEAR account with NEAR
+  in it. The MPC-derived key exists and is usable in principle, but billing a stranger through it
+  isn't wired up in this demo.
+- Settlement is still one wallet → one invoice → one transaction, with exact-amount enforcement.
+
+### The vision — why this beats both Stripe and a raw wallet send
+
+A true Stripe-style checkout with a Web2 button would look like this:
+
+1. **Click "Pay with Google."** A popup asks for your Google login. No password to the app, no
+   seed phrase, no extension, no wallet install prompt.
+2. **MPC derives your NEAR key** from your Google identity. The app never sees a private key.
+3. **Your universal account already exists** (or is created by a sponsored relayer on the first
+   purchase — the NEAR Auth relayer-assisted creation flow). The merchant never needs a customer
+   to "get NEAR" before paying; the relayer can sponsor creation and gas from the price of the
+   invoice.
+4. **A meta-transaction pays the invoice.** You sign once in the Auth0 popup; the relayer wraps
+   your signature in a NEP-366 meta-transaction, the contract executes `pay_invoice`, funds land
+   in the merchant's account — and from the customer's perspective it felt identical to tapping
+   "Confirm" on any modern checkout.
+
+No card numbers on our servers. No account lists to leak. No seed phrases to lose. No custodial
+balance at risk. And because the whole thing is just NEAR transactions and NEP-366 meta-transactions,
+everything is auditable on-chain.
+
+**What is deliberately not in this demo:** multi-token payment (NEP-141 stablecoins — the
+contract currently only accepts native NEAR), subscriptions and split payments, refund flows,
+and partial payment support. Those are the natural next steps.
+
+### Why it isn't ready for strangers on arbitrary origins yet
+
+- **Only NEAR-authorised origins can use the shared testnet Auth0 app** (`localhost:3000`).
+  The callback allowlist is not ours to extend. Anyone shipping their own demo must run locally,
+  or apply to NEAR Auth for a production/Auth0 tenant and build a custom attested issuer so our
+  own origin is trusted (the NEAR Auth repository documents the custom-issuer path).
+- The browser SDK / library support for **universal accounts in web apps** is still landing.
+  The testnet faucet and the meta-transaction relayer pattern are proven in production for
+  first-party NEAR apps; general third-party adoption is still early.
+- Sponsoring customer-side gas requires either a relayer service or a product decision about
+  who pays for each transaction (merchant, the NEAR Foundation, or the customer in NEAR).
+
+### Honest summary for judges
+
+| Property | Wallet path | Guest path (today) | Guest path (vision) |
+| --- | --- | --- | --- |
+| One-click payment | ✓ | Partial (identify only) | ✓ |
+| Works offline / without Google | ✓ | ✓ (via wallet too) | — |
+| No seed phrase for the customer | — | ✓ | ✓ |
+| No customer wallet at all | — | — | ✓ |
+| Settles to merchant wallet | ✓ | ✓ | ✓ |
+| Exact-amount on-chain enforcement | ✓ | ✓ | ✓ |
+| Refundable | soon | soon | soon |
 
 ---
 
@@ -350,12 +440,10 @@ real transactions.
 - **The demo engine is not the contract.** Demo mode mirrors the rules in `demoStore.ts` for a
   wallet-free experience. Live mode always reads and writes the deployed contract.
 - **Guest checkout = identifying, not paying, with Google.** The checkout page's *Sign in with Google*
-  button is a real NEAR Auth (Auth0) login — but only on `http://localhost:3000`, the one callback
-  origin the shared testnet client trusts. The shared client rejects our GitHub Pages origin with
-  "Callback URL mismatch", so the deployed demo shows a how-to-enable note instead of a broken button.
-  Even locally, the browser SDK can't derive universal accounts yet, so settlement still signs via
-  your wallet. To use your own Auth0 tenant (your own origin allowed), set `VITE_FAST_AUTH_CLIENT_ID`
-  (and optionally `VITE_FAST_AUTH_DOMAIN` / `VITE_FAST_AUTH_SIGNING_AUDIENCE`) at build time.
+  button is a real NEAR Auth (Auth0) login that only works on `http://localhost:3000` — the one
+  callback origin the shared testnet client trusts. Even locally, the browser SDK can't derive
+  universal accounts yet, so settlement still signs via the customer's wallet. To own your origin,
+  set `VITE_FAST_AUTH_CLIENT_ID` at build time. See [Payments and guest checkout](#payments-and-guest-checkout).
 - **Payment links reveal the invoice.** `?pay=<owner>:<invoiceId>` exposes the invoice id and amounts
   (invoices are public on-chain regardless). Treat the link as an identifier and avoid sharing it publicly.
 - **Reliance on the indexer-free RPC.** Views use `rpc.testnet.near.org`; a production app should
@@ -368,11 +456,12 @@ real transactions.
 1. **Done** — contract, unit tests, testnet deployment, demo + live frontend, GitHub Pages demo.
    Payment links with a customer-facing checkout page, lazy-loaded Google sign-in via NEAR Auth
    (testnet) as guest identification, one-click payment that settles on-chain.
-2. **Next** — full Universal-Account-based guest payment (needs relayer-assisted account creation),
-   partial payments, refunds, PDF export.
+2. **Next** — full one-tap guest checkout: Google sign-in → NEP-366 meta-transaction → NEAR
+   Universal Account auto-creation (needs relayer-assisted account creation), partial payments,
+   refunds, PDF export.
 3. **Then** — private invoices (commitments), multi-business workspaces, recurring invoices,
-   analytics charts, email notifications.
-4. **Later** — mainnet hardening and an external audit.
+   multi-token payments (NEP-141 stablecoins), analytics charts, email notifications.
+4. **Later** — mainnet hardening, NEAR Fast Auth production credentials, external audit.
 
 ---
 
