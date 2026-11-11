@@ -129,6 +129,10 @@ judges and visitors can explore the product without a wallet.
 - **Live mode** — reads via NEAR RPC and writes via
   [NEAR Wallet Selector](https://github.com/near/wallet-selector) with MyNearWallet, Meteor,
   HERE, Nightly and Sender. The wallet stack is lazy-loaded, so the demo stays light.
+- **Uses your installed wallet.** If a NEAR wallet extension is already active in the browser
+  (Meteor, Nightly, Sender or HERE), **Connect wallet** signs in with it directly instead of
+  opening another wallet tab. The wallet you connected with last time is preferred. Use
+  **Choose a wallet** to pick a different one.
 - Browser-safe NEAR libraries: `src/polyfills.ts` provides the Node globals (`Buffer`, `global`)
   that some wallet packages expect, so wallet setup works on a plain static host like GitHub Pages.
 - Money is handled as `u128` yoctoNEAR strings end-to-end; the UI formats to NEAR.

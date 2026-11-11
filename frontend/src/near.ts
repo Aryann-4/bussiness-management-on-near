@@ -54,12 +54,87 @@ export async function initWallet(): Promise<WalletSelector> {
   return selector;
 }
 
+/**
+ * Wallets that live inside the browser (extensions) expose a global. When one
+ * is already installed and unlocked we connect to it directly instead of
+ * opening the wallet-selector modal, so no extra wallet tab is opened.
+ */
+const INJECTED_WALLETS: Array<{
+  id: string;
+  name: string;
+  detect: (w: any) => boolean;
+}> = [
+  {
+    id: "meteor-wallet",
+    name: "Meteor Wallet",
+    detect: (w) => Boolean(w.meteorWallet || w.meteorCom),
+  },
+  {
+    id: "nightly",
+    name: "Nightly",
+    detect: (w) => Boolean(w.nightly?.near || w.nightly?.isNightly),
+  },
+  {
+    id: "sender",
+    name: "Sender",
+    detect: (w) => Boolean(w.near?.isSender),
+  },
+  {
+    id: "here-wallet",
+    name: "HERE Wallet",
+    detect: (w) => Boolean(w.hotExtension || w.hereWallet),
+  },
+];
+
+/** The wallet-selector id of the wallet the user connected with last time. */
+function lastWalletId(): string | null {
+  try {
+    return localStorage.getItem("near-wallet-selector:selectedWalletId");
+  } catch {
+    return null;
+  }
+}
+
+export function detectInjectedWallet(): { id: string; name: string } | null {
+  const w = window as any;
+  const installed = INJECTED_WALLETS.filter((item) => {
+    try {
+      return item.detect(w);
+    } catch {
+      return false;
+    }
+  });
+  if (!installed.length) return null;
+
+  // Prefer whichever extension the user connected with previously.
+  const last = lastWalletId();
+  const preferred = installed.find((item) => item.id === last) ?? installed[0];
+  return { id: preferred.id, name: preferred.name };
+}
+
 export async function connectWallet(): Promise<string | null> {
   const s = await initWallet();
   if (s.isSignedIn()) {
     wallet = await s.wallet();
     return s.store.getState().accounts[0]?.accountId ?? null;
   }
+
+  // Use the wallet that is already activated in this browser, if any.
+  const installed = detectInjectedWallet();
+  if (installed) {
+    try {
+      const injected = await s.wallet(installed.id);
+      // The detected wallets are always injected; the union type is wider.
+      const accounts = await (injected as any).signIn({ contractId: CONTRACT_ID });
+      wallet = injected;
+      const accountId =
+        accounts?.[0]?.accountId ?? s.store.getState().accounts[0]?.accountId ?? null;
+      if (accountId) return accountId;
+    } catch {
+      // Extension not ready or the user dismissed it — fall back to the modal.
+    }
+  }
+
   modal?.show();
   return null;
 }

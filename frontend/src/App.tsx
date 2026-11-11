@@ -10,6 +10,7 @@ import {
   fetchDashboard,
   live,
   restoreWallet,
+  showWalletModal,
 } from "./near";
 import { shortAccount } from "./money";
 import { Icon, type IconName } from "./components/Icon";
@@ -310,12 +311,17 @@ export default function App() {
             <button className="btn primary" onClick={connect} disabled={connecting}>
               {connecting ? "Connecting…" : "Connect wallet"}
             </button>
+            <button className="btn ghost" onClick={() => showWalletModal()}>
+              Choose a wallet
+            </button>
             <button className="btn ghost" onClick={() => switchMode("demo")}>
               Back to demo
             </button>
           </div>
           <p className="hint">
-            No wallet handy? The demo works exactly the same, just without real transactions.
+            Already have a NEAR wallet extension? <strong>Connect wallet</strong> uses the one
+            that's active in this browser. No wallet handy? The demo works exactly the same, just
+            without real transactions.
           </p>
         </div>
       )}

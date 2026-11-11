@@ -2124,6 +2124,44 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
+/* Wallet selector on small screens                                    */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The wallet-selector modal makes its detail panel `position: sticky` on
+ * phones, which covers the last wallet rows (Meteor, Nightly, Sender).
+ * Let the list and the detail panel flow normally instead.
+ */
+@media (max-width: 576px) {
+  #near-wallet-selector-modal .nws-modal-wrapper .nws-modal {
+    height: auto;
+    max-height: min(80dvh, 760px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--wallet-selector-content-bg, var(--content-bg));
+  }
+
+  #near-wallet-selector-modal .nws-modal-wrapper .nws-modal .modal-left {
+    width: 100%;
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  #near-wallet-selector-modal .nws-modal-wrapper .nws-modal .modal-right {
+    position: static;
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
+    background: var(--wallet-selector-content-bg, var(--content-bg));
+  }
+
+  #near-wallet-selector-modal .nws-modal-wrapper .nws-modal .modal-left-title {
+    padding-top: 20px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Responsive                                                          */
 /* ------------------------------------------------------------------ */
 
