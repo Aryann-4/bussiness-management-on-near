@@ -6,7 +6,7 @@ import {
   live,
   restoreWallet,
 } from "../near";
-import { guestSignIn, guestSignOut } from "../guest";
+import { guestSignIn, guestSignInAvailable, guestSignOut } from "../guest";
 import { shortAccount } from "../money";
 import { formatDate, formatNear } from "../money";
 import { Icon } from "../components/Icon";
@@ -335,7 +335,7 @@ export default function Pay({
                         Switch account
                       </button>
                     </div>
-                  ) : (
+                  ) : guestSignInAvailable() ? (
                     <div className="guest-panel">
                       <p className="guest-lead">
                         Sign in with an existing Google account to pay without setting up a
@@ -359,6 +359,27 @@ export default function Pay({
                         Powered by NEAR Auth (testnet). No password or seed phrase is
                         shared with this site — keys are secured by MPC.
                       </p>
+                    </div>
+                  ) : (
+                    <div className="guest-panel">
+                      <p className="guest-lead">
+                        Google sign-in needs the NEAR Auth testnet callback origin, which
+                        the shared client only allows on <span className="mono">localhost:3000</span>.
+                      </p>
+                      <p className="guest-lead" style={{ marginTop: 6 }}>
+                        To try it here, run the app locally on port 3000 (the default
+                        <code> npm run dev </code>) and open this same payment link — the tab will
+                        work there. On other origins (including this deployed site) pop-ups
+                        can&apos;t be authorized.
+                      </p>
+                      <button
+                        className="btn primary block"
+                        style={{ marginTop: 12 }}
+                        onClick={() => setGuestChoice("wallet")}
+                      >
+                        <Icon name="wallet" size={16} />
+                        Pay with NEAR wallet instead
+                      </button>
                     </div>
                   )
                 ) : (

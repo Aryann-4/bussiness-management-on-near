@@ -1,25 +1,26 @@
 /**
  * Google sign-in powered by NEAR Auth (testnet).
  *
- * Limited on purpose: the browser SDK can authenticate you and produce a
- * deterministic public key, but there is currently no shipped JS helper to
- * derive the `Universal Account` id from that key. So a guest cannot sign a
- * payment from an unfunded account yet — the guest flow ends by connecting
- * their NEAR wallet to actually submit the transaction.
+ * Limited on purpose: the shared NEAR Auth testnet Auth0 app only whitelists
+ * the `http://localhost:3000` callback, so the popup works from a locally-run
+ * dev/preview server on port 3000. On any other origin the popup opens but
+ * Auth0 rejects the redirect — so the UI shows a note instead of pretending
+ * to work.
  *
- * Runs entirely in the browser and is lazy-loaded, so it doesn't affect
- * the rest of the app's bundle.
+ * To use your own Auth0 tenant, set VITE_FAST_AUTH_CLIENT_ID (and optionally
+ * VITE_FAST_AUTH_DOMAIN / VITE_FAST_AUTH_SIGNING_AUDIENCE) at build time.
  */
-
-export type GuestSession = {
-  publicKey: string;
-};
 
 // NEAR Auth testnet shared development credentials — do not ship for mainnet.
 const SHARED_TESTNET_CLIENT_ID = "np8paqIpMWmNbzT4xAvOOapZBjsOpptl";
 const FAST_AUTH_CONTRACT = "fast-auth.testnet";
 const MPC_CONTRACT = "v1.signer-prod.testnet";
 const RPC_URL = "https://rpc.testnet.near.org";
+const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
+
+export type GuestSession = {
+  publicKey: string;
+};
 
 type Loaded = {
   signIn: () => Promise<GuestSession>;
@@ -27,6 +28,20 @@ type Loaded = {
 };
 
 let loaded: Loaded | null = null;
+
+function env(name: string): string | undefined {
+  return (import.meta as any).env?.[name];
+}
+
+/** True when this origin is allowed by the configured Auth0 application. */
+export function guestSignInAvailable(): boolean {
+  if (env("VITE_FAST_AUTH_CLIENT_ID")) return true; // own tenant wins
+  try {
+    return DEFAULT_ALLOWED_ORIGINS.includes(window.location.origin);
+  } catch {
+    return false;
+  }
+}
 
 async function getClient(): Promise<Loaded> {
   if (loaded) return loaded;
@@ -37,9 +52,15 @@ async function getClient(): Promise<Loaded> {
     import("near-api-js"),
   ]);
 
+  const clientId = env("VITE_FAST_AUTH_CLIENT_ID") || SHARED_TESTNET_CLIENT_ID;
+
   const provider = new JavascriptProvider({
     network: "testnet",
-    clientId: SHARED_TESTNET_CLIENT_ID,
+    clientId,
+    ...(env("VITE_FAST_AUTH_DOMAIN") ? { domain: env("VITE_FAST_AUTH_DOMAIN") } : {}),
+    ...(env("VITE_FAST_AUTH_SIGNING_AUDIENCE")
+      ? { signingAudience: env("VITE_FAST_AUTH_SIGNING_AUDIENCE") }
+      : {}),
   });
 
   // The SDK only uses connection.provider.query/sendTransaction, so a
