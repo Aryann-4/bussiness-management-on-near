@@ -44,28 +44,32 @@ export default function Overview({
           icon="wallet"
           tone="mint"
           label="Money received"
-          value={formatNear(stats.revenue, currency)}
+          value={Number(stats.revenue) / 1e24}
+          format={(n) => `${n.toFixed(n < 10 ? 2 : 0)} ${currency}`}
           hint={`${stats.paid_invoices} paid invoice${stats.paid_invoices === 1 ? "" : "s"}`}
         />
         <StatCard
           icon="clock"
           tone="amber"
           label="Awaiting payment"
-          value={formatNear(stats.outstanding, currency)}
+          value={Number(stats.outstanding) / 1e24}
+          format={(n) => `${n.toFixed(n < 10 ? 2 : 0)} ${currency}`}
           hint={`${stats.open_invoices} open invoice${stats.open_invoices === 1 ? "" : "s"}`}
         />
         <StatCard
           icon="users"
           tone="indigo"
           label="Customers"
-          value={String(stats.customers)}
+          value={stats.customers}
+          format={(n) => String(Math.round(n))}
           hint="people you invoice"
         />
         <StatCard
           icon="invoice"
           tone="sky"
           label="Invoices"
-          value={String(stats.invoices)}
+          value={stats.invoices}
+          format={(n) => String(Math.round(n))}
           hint={`${stats.open_invoices} still open`}
         />
       </div>

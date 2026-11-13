@@ -23,11 +23,13 @@
     "@near-wallet-selector/nightly": "^10.1.4",
     "@near-wallet-selector/sender": "^10.1.4",
     "buffer": "^6.0.3",
+    "canvas-confetti": "^1.9.3",
     "near-api-js": "^7.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",

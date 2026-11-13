@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, Run, Tab, Toast } from "./appTypes";
 import type { Dashboard } from "./types";
 import * as demo from "./demoStore";
@@ -64,6 +64,30 @@ export default function App() {
     const invoiceId = Number(raw.slice(at + 1));
     if (!ownerId || !Number.isInteger(invoiceId) || invoiceId < 1) return null;
     return { ownerId, invoiceId };
+  }, []);
+
+  // Subtle mouse parallax on the background orbs. Purely decorative and
+  // disabled entirely for users who prefer reduced motion.
+  const orbsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = orbsRef.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const onMove = (event: MouseEvent) => {
+      const x = (event.clientX / window.innerWidth - 0.5) * 2;
+      const y = (event.clientY / window.innerHeight - 0.5) * 2;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        el.style.setProperty("--orb-x", x.toFixed(3));
+        el.style.setProperty("--orb-y", y.toFixed(3));
+      });
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {
@@ -242,7 +266,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="orbs" aria-hidden="true">
+      <div className="orbs" ref={orbsRef} aria-hidden="true">
         <span className="orb orb-a" />
         <span className="orb orb-b" />
         <span className="orb orb-c" />

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Toast } from "../appTypes";
 import type { InvoiceStatus } from "../types";
@@ -18,28 +19,50 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
   );
 }
 
+function useCountUp(target: number, duration = 800): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return;
+    }
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(target * eased);
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+  return value;
+}
+
 export function StatCard({
   icon,
   label,
   value,
   hint,
+  format = (n: number) => String(Math.round(n)),
   tone = "indigo",
 }: {
   icon: IconName;
   label: string;
-  value: string;
+  value: number;
   hint: string;
+  format?: (value: number) => string;
   tone?: "indigo" | "mint" | "amber" | "sky";
 }) {
+  const display = format(useCountUp(value));
   return (
     <div className="stat">
       <div className={`stat-icon tone-${tone}`}>
         <Icon name={icon} size={19} />
       </div>
       <div className="stat-label">{label}</div>
-      <div className="stat-value" key={value}>
-        {value}
-      </div>
+      <div className="stat-value">{display}</div>
       <div className="stat-hint">{hint}</div>
     </div>
   );
@@ -117,6 +140,7 @@ export function ToastView({ toast }: { toast: Toast }) {
         <Icon name={toast.kind === "success" ? "check" : "info"} size={16} />
       </span>
       <span>{toast.message}</span>
+      <span className="toast-progress" aria-hidden="true" />
     </div>
   );
 }

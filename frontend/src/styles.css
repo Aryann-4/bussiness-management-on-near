@@ -157,6 +157,11 @@ a:hover {
   gap: 12px;
 }
 
+.brand:hover .brand-mark {
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22), 0 10px 22px -10px rgba(79, 70, 229, 0.85),
+    0 0 34px rgba(139, 92, 246, 0.45);
+}
+
 .brand-mark {
   width: 44px;
   height: 44px;
@@ -169,6 +174,7 @@ a:hover {
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  transition: box-shadow 0.35s ease;
 }
 
 .brand-mark::after {
@@ -794,7 +800,30 @@ textarea:focus,
   line-height: 1.08;
   letter-spacing: -0.035em;
   font-weight: 700;
+  background: linear-gradient(
+    100deg,
+    var(--text) 0%,
+    var(--text) 42%,
+    var(--indigo) 50%,
+    var(--text) 58%,
+    var(--text) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: heroShimmer 11s ease-in-out infinite;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero h1 {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
 
 .hero-lead {
   margin-top: 16px;
@@ -1517,6 +1546,33 @@ textarea:focus,
   background: #d92d4b;
 }
 
+.toast {
+  position: fixed;
+  padding-bottom: 16px;
+  overflow: hidden;
+}
+
+.toast-progress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 999px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #4ade9a, #6ee7b7);
+  animation: toastCountdown 4.2s linear forwards;
+}
+
+@keyframes toastCountdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1544,6 +1600,9 @@ body {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  transform: translate3d(calc(var(--orb-x, 0) * 18px), calc(var(--orb-y, 0) * 12px), 0);
+  transition: transform 0.6s cubic-bezier(0.22, 0.8, 0.3, 1);
+  will-change: transform;
 }
 
 .orb {
@@ -1956,6 +2015,18 @@ body {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes heroShimmer {
+  0% {
+    background-position: 120% 50%;
+  }
+  60% {
+    background-position: -80% 50%;
+  }
+  100% {
+    background-position: -80% 50%;
   }
 }
 

@@ -6,6 +6,7 @@ import { live } from "../near";
 import { formatDate, formatNear, nearToYocto } from "../money";
 import * as demo from "../demoStore";
 import type { Dashboard, Invoice, InvoiceItemInput, InvoiceStatus } from "../types";
+import { celebratePayment } from "../celebrate";
 
 const emptyLine = () => ({ description: "", quantity: "1", unit: "" });
 
@@ -124,6 +125,7 @@ export default function Invoices({
         await live.payInvoice(account, invoice.id, invoice.total);
       },
     });
+    if (ok) celebratePayment();
     if (ok && viewingId === invoice.id) setViewingId(null);
   };
 
