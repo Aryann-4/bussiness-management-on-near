@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { Mode, Run } from "../appTypes";
 import { Icon } from "../components/Icon";
 import { EmptyState, Modal, StatusBadge } from "../components/ui";
+import { QrShare } from "../components/QrShare";
 import { live } from "../near";
 import { formatDate, formatNear, nearToYocto } from "../money";
 import * as demo from "../demoStore";
@@ -32,6 +33,10 @@ export default function Invoices({
   const [items, setItems] = useState([emptyLine(), emptyLine()]);
   const [formError, setFormError] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<number | null>(null);
+  const [sharingInvoice, setSharingInvoice] = useState<Invoice | null>(null);
+  const shareUrl = sharingInvoice
+    ? `${window.location.origin}${window.location.pathname}?pay=${encodeURIComponent(account ?? "")}:${sharingInvoice.id}`
+    : null;
 
   const viewing = dashboard.invoices.find((invoice) => invoice.id === viewingId) ?? null;
   const customerName = (id: number) =>
@@ -363,12 +368,12 @@ export default function Invoices({
                           <button
                             className="btn primary small"
                             onClick={() =>
-                              mode === "demo" ? pay(invoice) : copyPaymentLink(invoice)
+                              mode === "demo" ? pay(invoice) : account ? setSharingInvoice(invoice) : copyPaymentLink(invoice)
                             }
                             disabled={busy}
                           >
                             <Icon name={mode === "demo" ? "wallet" : "card"} size={13} />
-                            {mode === "demo" ? "Mark paid" : "Payment link"}
+                            {mode === "demo" ? "Mark paid" : "Share"}
                           </button>
                         )}
                         {invoice.status !== "Paid" && invoice.status !== "Cancelled" && (
@@ -389,6 +394,17 @@ export default function Invoices({
           </div>
         )}
       </section>
+
+      <QrShare
+        open={sharingInvoice !== null}
+        onClose={() => setSharingInvoice(null)}
+        url={shareUrl}
+        title={
+          sharingInvoice
+            ? `Invoice #${String(sharingInvoice.id).padStart(4, "0")} — ${formatNear(sharingInvoice.total, currency)}`
+            : ""
+        }
+      />
 
       <Modal
         open={viewing !== null}

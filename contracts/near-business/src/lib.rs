@@ -5,11 +5,20 @@
 //! funds are forwarded to the business owner in the same transaction.
 
 use near_sdk::json_types::U128;
-use near_sdk::{env, near, require, AccountId, NearToken, PanicOnDefault, Promise, Timestamp};
+use near_sdk::{env, near, require, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseResult, Timestamp};
 use near_sdk::store::LookupMap;
 
 const EVENT_JSON: &str = "EVENT_JSON:";
 const BPS_DENOMINATOR: u128 = 10_000;
+/// Storage prefixes. Bumped to force a clean slate when the contract is
+/// re-initialized over an older schema (orphaned old entries are skipped).
+const PREFIX_DASHBOARDS: &[u8] = b"d2";
+const PREFIX_FT_BALANCES: &[u8] = b"ft2";
+
+/// Whole-unit scale used for every stored amount (yoctoNEAR-style).
+const SCALE: u128 = 1_000_000_000_000_000_000_000_000; // 10^24
+/// Gas for an ft_transfer call to a fungible-token contract.
+const FT_TRANSFER_GAS: Gas = Gas::from_tgas(20);
 
 // ---------------------------------------------------------------------------
 // Data types
@@ -90,6 +99,17 @@ pub struct Invoice {
     pub paid_at: Option<Timestamp>,
 }
 
+/// Fungible token accepted for invoice payments, with its base-unit decimals.
+#[near(serializers = [json, borsh])]
+#[derive(Clone)]
+pub struct AcceptedToken {
+    /// NEP-141 token contract account.
+    pub account: AccountId,
+    /// Base-unit decimals (e.g. 6 for USDC). Amounts are compared against the
+    /// invoice total, which is always stored at the 10^24 whole-unit scale.
+    pub decimals: u8,
+}
+
 #[near(serializers = [json, borsh])]
 #[derive(Clone)]
 pub struct Stats {
@@ -113,6 +133,8 @@ pub struct Dashboard {
     pub products: Vec<Product>,
     pub invoices: Vec<Invoice>,
     pub revenue: U128,
+    /// Optional fungible token this business accepts for payments.
+    pub accepted_token: Option<AcceptedToken>,
     pub next_customer_id: u32,
     pub next_product_id: u32,
     pub next_invoice_id: u32,
@@ -126,6 +148,9 @@ pub struct Dashboard {
 #[derive(PanicOnDefault)]
 pub struct Contract {
     dashboards: LookupMap<AccountId, Dashboard>,
+    /// FT balances held by the contract on behalf of business owners.
+    /// Key = owner bytes + 0x00 + token bytes.
+    ft_balances: LookupMap<Vec<u8>, U128>,
 }
 
 #[near]
@@ -133,8 +158,16 @@ impl Contract {
     #[init]
     pub fn new() -> Self {
         Self {
-            dashboards: LookupMap::new(b"d"),
+            dashboards: LookupMap::new(PREFIX_DASHBOARDS),
+            ft_balances: LookupMap::new(PREFIX_FT_BALANCES.to_vec()),
         }
+    }
+
+    /// Re-initialize the contract, discarding any previous state. Used when
+    /// upgrading the storage schema; existing dashboards are not migrated.
+    #[init(ignore_state)]
+    pub fn reinitialize() -> Self {
+        Self::new()
     }
 
     // -- business profile ---------------------------------------------------
@@ -173,6 +206,7 @@ impl Contract {
             products: Vec::new(),
             invoices: Vec::new(),
             revenue: U128(0),
+            accepted_token: None,
             next_customer_id: 1,
             next_product_id: 1,
             next_invoice_id: 1,
@@ -481,6 +515,139 @@ impl Contract {
         paid
     }
 
+    // -- fungible-token payments (NEP-141) ----------------------------------
+
+    /// Set the fungible token this business accepts for invoice payments.
+    /// Only the business owner can call this.
+    pub fn set_accepted_token(&mut self, token: AccountId, decimals: u8) {
+        let owner = env::predecessor_account_id();
+        let mut dashboard = self.dashboard_of(&owner);
+        require!(decimals <= 30, "Token decimals out of range");
+        dashboard.accepted_token = Some(AcceptedToken {
+            account: token.clone(),
+            decimals,
+        });
+        self.dashboards.insert(owner.clone(), dashboard);
+        log_event(
+            "accepted_token_set",
+            format!(r#"{{"owner":"{}","token":"{}","decimals":{}}}"#, owner, token, decimals),
+        );
+    }
+
+    pub fn clear_accepted_token(&mut self) {
+        let owner = env::predecessor_account_id();
+        let mut dashboard = self.dashboard_of(&owner);
+        dashboard.accepted_token = None;
+        self.dashboards.insert(owner.clone(), dashboard);
+    }
+
+    /// Receive fungible tokens sent via `ft_transfer_call` with
+    /// msg = "pay:<owner_account>:<invoice_id>". Marks the invoice paid and
+    /// holds the exact amount for the owner to withdraw. Any overpayment is
+    /// refunded to the sender by returning the difference.
+    #[private]
+    pub fn ft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> U128 {
+        let token = env::predecessor_account_id();
+        let parts: Vec<&str> = msg.split(':').collect();
+        require!(parts.len() == 3 && parts[0] == "pay", "Invalid payment memo");
+        let owner: AccountId = parts[1]
+            .parse()
+            .unwrap_or_else(|_| env::panic_str("Invalid payment memo: bad owner"));
+        let invoice_id: u32 = parts[2]
+            .parse()
+            .unwrap_or_else(|_| env::panic_str("Invalid payment memo: bad invoice id"));
+
+        let mut dashboard = self.dashboard_of(&owner);
+        let accepted = dashboard
+            .accepted_token
+            .clone()
+            .unwrap_or_else(|| env::panic_str("This business does not accept token payments"));
+        require!(accepted.account == token, "Token is not accepted for payment");
+
+        let index = dashboard
+            .invoices
+            .iter()
+            .position(|i| i.id == invoice_id)
+            .unwrap_or_else(|| env::panic_str("Invoice not found"));
+        require!(
+            dashboard.invoices[index].status != InvoiceStatus::Paid,
+            "Invoice already paid"
+        );
+        require!(
+            dashboard.invoices[index].status != InvoiceStatus::Cancelled,
+            "Invoice was cancelled"
+        );
+
+        let total = dashboard.invoices[index].total.0;
+        let required = total_in_token_units(total, accepted.decimals);
+        require!(amount.0 >= required, "Insufficient token amount");
+
+        dashboard.invoices[index].status = InvoiceStatus::Paid;
+        dashboard.invoices[index].paid_at = Some(env::block_timestamp());
+        dashboard.revenue = U128(dashboard.revenue.0 + required);
+        let paid = dashboard.invoices[index].clone();
+        self.dashboards.insert(owner.clone(), dashboard);
+
+        // Hold the exact payment for the owner; the token contract refunds
+        // (amount - required) to the sender because of what we return.
+        let key = ft_balance_key(&owner, &token);
+        let current = self.ft_balances.get(&key).map(|b| b.0).unwrap_or(0);
+        self.ft_balances.insert(key.clone(), U128(current + required));
+
+        log_event(
+            "invoice_paid_token",
+            format!(
+                r#"{{"owner":"{}","invoice_id":{},"payer":"{}","token":"{}","amount":"{}"}}"#,
+                owner, invoice_id, sender_id, token, required
+            ),
+        );
+
+        U128(amount.0 - required)
+    }
+
+    /// Tokens the contract is holding for the given owner, per token.
+    pub fn get_ft_balance(&self, owner_id: AccountId, token: AccountId) -> U128 {
+        self.ft_balances
+            .get(&ft_balance_key(&owner_id, &token))
+            .cloned()
+            .unwrap_or(U128(0))
+    }
+
+    /// Withdraw held token payments to the owner. The owner must be
+    /// registered with the token contract first.
+    #[payable]
+    pub fn withdraw_ft(&mut self, token: AccountId) -> Promise {
+        let owner = env::predecessor_account_id();
+        let key = ft_balance_key(&owner, &token);
+        let balance = self.ft_balances.get(&key).map(|b| b.0).unwrap_or(0);
+        require!(balance > 0, "No token balance to withdraw");
+
+        let args = format!(r#"{{"receiver_id":"{}","amount":"{}"}}"#, owner, balance);
+        Promise::new(token.clone())
+            .function_call("ft_transfer".to_string(), args.into_bytes(), NearToken::from_yoctonear(1), FT_TRANSFER_GAS)
+            .then(
+                Self::ext(env::current_account_id())
+                    .ft_withdraw_callback(owner.clone(), token.clone(), U128(balance)),
+            )
+    }
+
+    /// Zero the held balance only after the ft_transfer succeeded.
+    #[private]
+    pub fn ft_withdraw_callback(&mut self, owner: AccountId, token: AccountId, amount: U128) {
+        require!(env::promise_results_count() == 1, "Expected one promise result");
+        if matches!(env::promise_result(0), PromiseResult::Successful(_)) {
+            let key = ft_balance_key(&owner, &token);
+            let current = self.ft_balances.get(&key).map(|b| b.0).unwrap_or(0);
+            self.ft_balances
+                .insert(key.clone(), U128(current.saturating_sub(amount.0)));
+        }
+    }
+
     pub fn get_invoice(&self, account_id: AccountId, invoice_id: u32) -> Option<Invoice> {
         self.dashboards
             .get(&account_id)
@@ -542,6 +709,31 @@ impl Contract {
             .cloned()
             .unwrap_or_else(|| env::panic_str("Create a business profile first"))
     }
+}
+
+/// Convert an amount stored at the 10^24 whole-unit scale into the base units
+/// of a token with `decimals` decimals. Rounds up so a payer is never short.
+fn total_in_token_units(total: u128, decimals: u8) -> u128 {
+    if (decimals as u32) == 24 {
+        return total;
+    }
+    if (decimals as u32) < 24 {
+        let denom = 10u128.pow(24 - decimals as u32);
+        return (total + denom - 1) / denom;
+    }
+    let factor = 10u128
+        .checked_pow(decimals as u32 - 24)
+        .unwrap_or_else(|| env::panic_str("Token decimals out of range"));
+    total
+        .checked_mul(factor)
+        .unwrap_or_else(|| env::panic_str("Amount overflow"))
+}
+
+fn ft_balance_key(owner: &AccountId, token: &AccountId) -> Vec<u8> {
+    let mut key = owner.as_bytes().to_vec();
+    key.push(0);
+    key.extend_from_slice(token.as_bytes());
+    key
 }
 
 fn log_event(kind: &str, data: String) {
@@ -711,5 +903,124 @@ mod tests {
         assert_eq!(stats.invoices, 1);
         assert_eq!(stats.open_invoices, 1);
         assert_eq!(stats.outstanding.0, 34); // 30 + 4 tax
+    }
+
+    // -- fungible-token payments --------------------------------------------
+
+    const TOKEN: &str = "usdc.fakes.testnet";
+
+    fn token_context(predecessor: AccountId) -> VMContextBuilder {
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id(accounts(0))
+            .signer_account_id(predecessor.clone())
+            .predecessor_account_id(predecessor);
+        builder
+    }
+
+    fn setup_with_token() -> (Contract, AccountId, AccountId, Invoice) {
+        let (mut contract, owner) = setup();
+        create_business(&mut contract);
+        let customer = contract.add_customer("Ada".into(), "ada@example.com".into());
+        let invoice = contract.create_invoice(
+            customer.id,
+            vec![InvoiceItemInput {
+                description: "Consulting".into(),
+                quantity: 1,
+                unit_price: U128(2_000_000_000_000_000_000_000_000), // 2 NEAR-scale
+            }],
+            14,
+        );
+        let token: AccountId = TOKEN.parse().unwrap();
+        contract.set_accepted_token(token.clone(), 6);
+        (contract, owner, token, invoice)
+    }
+
+    #[test]
+    fn token_payment_marks_invoice_paid() {
+        let (mut contract, owner, token, invoice) = setup_with_token();
+
+        // 2.3 NEAR-scale units (2 NEAR + 15% tax) with a 6-decimal token
+        // = 2_300_000 base units.
+        let required = total_in_token_units(invoice.total.0, 6);
+        assert_eq!(required, 2_300_000);
+
+        testing_env!(token_context(token.clone()).build());
+        let refund = contract.ft_on_transfer(
+            "client.testnet".parse().unwrap(),
+            U128(required),
+            format!("pay:{}:{}", owner, invoice.id),
+        );
+        assert_eq!(refund.0, 0);
+
+        let paid = contract.get_invoice(owner.clone(), invoice.id).unwrap();
+        assert_eq!(paid.status, InvoiceStatus::Paid);
+        assert_eq!(contract.get_ft_balance(owner.clone(), token).0, required);
+
+        let stats = contract.get_stats(owner);
+        assert_eq!(stats.paid_invoices, 1);
+        assert_eq!(stats.revenue.0, required);
+    }
+
+    #[test]
+    fn token_overpayment_is_refunded() {
+        let (mut contract, owner, token, invoice) = setup_with_token();
+        let required = total_in_token_units(invoice.total.0, 6);
+
+        testing_env!(token_context(token.clone()).build());
+        let refund = contract.ft_on_transfer(
+            "client.testnet".parse().unwrap(),
+            U128(required + 500),
+            format!("pay:{}:{}", owner, invoice.id),
+        );
+        assert_eq!(refund.0, 500);
+        // The contract only holds the exact amount.
+        assert_eq!(contract.get_ft_balance(owner, token).0, required);
+    }
+
+    #[test]
+    #[should_panic(expected = "Insufficient token amount")]
+    fn token_underpayment_fails() {
+        let (mut contract, owner, token, invoice) = setup_with_token();
+        let required = total_in_token_units(invoice.total.0, 6);
+
+        testing_env!(token_context(token).build());
+        contract.ft_on_transfer(
+            "client.testnet".parse().unwrap(),
+            U128(required - 1),
+            format!("pay:{}:{}", owner, invoice.id),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Token is not accepted")]
+    fn rejects_unaccepted_token() {
+        let (mut contract, owner, _token, invoice) = setup_with_token();
+        let other: AccountId = "other-token.testnet".parse().unwrap();
+
+        testing_env!(token_context(other).build());
+        contract.ft_on_transfer(
+            "client.testnet".parse().unwrap(),
+            U128(10_000_000),
+            format!("pay:{}:{}", owner, invoice.id),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid payment memo")]
+    fn rejects_bad_memo() {
+        let (mut contract, _owner, token, _invoice) = setup_with_token();
+        testing_env!(token_context(token).build());
+        contract.ft_on_transfer("client.testnet".parse().unwrap(), U128(10_000_000), "junk".into());
+    }
+
+    #[test]
+    fn token_unit_conversion_scales_decimals() {
+        // 1 whole unit at 10^24 scale.
+        let one = 1_000_000_000_000_000_000_000_000u128;
+        assert_eq!(total_in_token_units(one, 24), one);
+        assert_eq!(total_in_token_units(one, 6), 1_000_000);
+        assert_eq!(total_in_token_units(one, 18), 1_000_000_000_000_000_000);
+        assert_eq!(total_in_token_units(1, 0), 1); // ceil keeps 1 base unit
     }
 }

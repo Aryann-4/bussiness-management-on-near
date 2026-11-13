@@ -178,27 +178,58 @@ export async function disconnectWallet() {
 }
 
 async function view<T>(method: string, args: Record<string, unknown>): Promise<T> {
-  const res = await fetch(RPC_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: "near-business-manager",
-      method: "query",
-      params: {
-        request_type: "call_function",
-        finality: "final",
-        account_id: CONTRACT_ID,
-        method_name: method,
-        args_base64: btoa(JSON.stringify(args)),
-      },
-    }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error.message || "RPC error");
-  const bytes = json.result?.result ?? [];
-  const text = new TextDecoder().decode(new Uint8Array(bytes));
-  return JSON.parse(text) as T;
+  return rpcView(CONTRACT_ID, method, args);
+}
+
+/** View-call any contract (used for fungible-token metadata and balances). */
+export async function viewOn<T>(
+  contractId: string,
+  method: string,
+  args: Record<string, unknown>,
+): Promise<T> {
+  return rpcView(contractId, method, args);
+}
+
+/**
+ * JSON-RPC view call with a small retry loop — public testnet RPC
+ * occasionally drops requests, and a silent failure would degrade the UI.
+ */
+async function rpcView<T>(account_id: string, method: string, args: Record<string, unknown>): Promise<T> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 700));
+    }
+    try {
+      const res = await fetch(RPC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "near-business-manager",
+          method: "query",
+          params: {
+            request_type: "call_function",
+            finality: "final",
+            account_id,
+            method_name: method,
+            args_base64: btoa(JSON.stringify(args)),
+          },
+        }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message || "RPC error");
+      const bytes = json.result?.result ?? [];
+      const text = new TextDecoder().decode(new Uint8Array(bytes));
+      return JSON.parse(text) as T;
+    } catch (e) {
+      lastError = e;
+      if (e instanceof Error && /panic|Invoice|business|memo|not accepted/i.test(e.message)) {
+        throw e; // Contract-level errors are not worth retrying.
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("RPC error");
 }
 
 export async function fetchDashboard(accountId: string): Promise<Dashboard | null> {
@@ -213,10 +244,26 @@ export async function getBusiness(accountId: string): Promise<Business | null> {
   return view<Business | null>("get_business", { account_id: accountId });
 }
 
+export type FtMetadata = {
+  symbol: string;
+  decimals: number;
+  name?: string;
+};
+
+export async function getFtMetadata(token: string): Promise<FtMetadata | null> {
+  try {
+    return await rpcView<FtMetadata>(token, "ft_metadata", {});
+  } catch {
+    return null;
+  }
+}
+
 type CallOptions = {
   args?: Record<string, unknown>;
   deposit?: string;
   gas?: string;
+  /** Target contract; defaults to the business contract. */
+  receiverId?: string;
 };
 
 export async function callContract(method: string, options: CallOptions = {}) {
@@ -227,7 +274,7 @@ export async function callContract(method: string, options: CallOptions = {}) {
 
   const result = await wallet.signAndSendTransaction({
     signerId: accountId,
-    receiverId: CONTRACT_ID,
+    receiverId: options.receiverId ?? CONTRACT_ID,
     actions: [
       signAction!(
         method,
@@ -304,4 +351,34 @@ export const live = {
       deposit: total,
       gas: "100000000000000",
     }),
+
+  /** Pay an invoice with the business's accepted fungible token. */
+  payInvoiceFt: (owner_id: string, invoice_id: number, token: string, amount: string) =>
+    callContract("ft_transfer_call", {
+      args: {
+        receiver_id: CONTRACT_ID,
+        amount,
+        msg: `pay:${owner_id}:${invoice_id}`,
+      },
+      receiverId: token,
+      deposit: "1",
+      gas: "300000000000000",
+    }),
+
+  /** Tell the contract which token this business accepts (owner only). */
+  setAcceptedToken: (token: string, decimals: number) =>
+    callContract("set_accepted_token", { args: { token, decimals } }),
+
+  clearAcceptedToken: () => callContract("clear_accepted_token", { args: {} }),
+
+  /** Withdraw token payments held by the contract (owner only). */
+  withdrawFt: (token: string) =>
+    callContract("withdraw_ft", {
+      args: { token },
+      deposit: "1",
+      gas: "300000000000000",
+    }),
+
+  getFtBalance: (owner_id: string, token: string) =>
+    view<string>("get_ft_balance", { owner_id, token }),
 };

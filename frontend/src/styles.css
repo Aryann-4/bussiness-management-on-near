@@ -2338,6 +2338,16 @@ body {
   font-size: 0.88rem;
 }
 
+.token-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: var(--surface-3);
+}
+
 .checkout-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2796,4 +2806,38 @@ body {
   .btn.primary::after {
     display: none;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* QR share modal                                                      */
+/* ------------------------------------------------------------------ */
+
+.qr-share {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.qr-image {
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+.qr-link {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.qr-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }

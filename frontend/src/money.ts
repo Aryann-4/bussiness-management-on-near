@@ -30,6 +30,34 @@ export function formatNear(value: string | number, currency = "NEAR"): string {
   return `${shown} ${currency}`;
 }
 
+/**
+ * Convert an invoice amount (stored at the 10^24 whole-unit scale, like
+ * yoctoNEAR) into the base-unit amount of a token with `decimals` decimals.
+ * Must match the contract's `total_in_token_units` (rounds up).
+ */
+export function totalToTokenUnits(total: string, decimals: number): string {
+  const amount = BigInt(total ?? "0");
+  if (decimals === 24) return amount.toString();
+  if (decimals < 24) {
+    const denom = 10n ** BigInt(24 - decimals);
+    return ((amount + denom - 1n) / denom).toString();
+  }
+  const factor = 10n ** BigInt(decimals - 24);
+  return (amount * factor).toString();
+}
+
+/** Format a token base-unit amount using the token's decimals. */
+export function formatToken(baseUnits: string, decimals: number, symbol: string): string {
+  const amount = BigInt(baseUnits ?? "0");
+  const whole = amount / 10n ** BigInt(decimals);
+  const fraction = (amount % 10n ** BigInt(decimals))
+    .toString()
+    .padStart(decimals, "0")
+    .slice(0, Math.min(6, decimals));
+  const trimmed = fraction.replace(/0+$/, "");
+  return `${whole.toLocaleString()}${trimmed ? `.${trimmed}` : ""} ${symbol}`;
+}
+
 export function formatDate(timestamp: number): string {
   if (!timestamp) return "—";
   return new Date(timestamp / 1_000_000).toLocaleDateString(undefined, {

@@ -53,6 +53,7 @@ export function createBusiness(
     },
     customers: [],
     products: [],
+    accepted_token: null,
     invoices: [],
     revenue: "0",
     next_customer_id: 1,

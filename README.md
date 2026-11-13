@@ -4,7 +4,7 @@
 
 [![Live demo](https://img.shields.io/badge/live%20demo-GitHub%20Pages-6ee7b7)](https://aryann-4.github.io/bussiness-management-on-near/)
 [![Contract](https://img.shields.io/badge/NEAR%20testnet-near--business--manager.testnet-60a5fa)](https://explorer.testnet.near.org/accounts/near-business-manager.testnet)
-[![Tests](https://img.shields.io/badge/contract%20tests-6%20passing-34d399)](contracts/near-business/src/lib.rs)
+[![Tests](https://img.shields.io/badge/contract%20tests-12%20passing-34d399)](contracts/near-business/src/lib.rs)
 [![Built for](https://img.shields.io/badge/NEAR%20Hackathon-2026-a78bfa)](#hackathon-track-alignment)
 
 > **Demo:** <https://aryann-4.github.io/bussiness-management-on-near/>
@@ -12,8 +12,43 @@
 
 ---
 
+## The pitch
+
+**Problem.** A solo business owner tracks customers and invoices in spreadsheets, sends payment
+links that settle in someone else's app, and reconciles it all by hand. Getting paid should be as
+easy as sharing a link — and it should settle in seconds, for fractions of a cent.
+
+**Solution.** NEAR Business Manager is the whole workflow on-chain: customers, products, invoices
+and payments live on a NEAR contract owned by the business. Every invoice has a **shareable
+payment link with a QR code** — the customer scans it, pays with a NEAR wallet **or any token the
+business accepts** (NEP-141 fungible tokens like USDC), and the contract marks the invoice paid and
+routes the funds to the owner atomically.
+
+**What's actually on-chain** (not a mock):
+- The full business state — profile, customers, catalogue, invoices — stored on
+  `near-business-manager.testnet`, owned by the caller's own account.
+- Real NEAR payments: `pay_invoice` requires an attached deposit equal to the invoice total
+  (computed on-chain with basis-point tax) and forwards the funds in the same transaction.
+- **Multi-token payments** via NEP-141 `ft_transfer_call`: the contract verifies the token is
+  accepted, converts the invoice total from the 10²⁴ whole-unit scale into the token's base units
+  on-chain, refunds overpayment, and holds the funds for the owner to withdraw.
+- Public verifiability: anyone can read the invoice status with a plain RPC view call — no trust
+  in the app required.
+
+**Why NEAR.** Sub-second finality means the customer sees "paid" instantly. Near-zero fees make a
+$5 invoice viable. Deterministic accounts + MPC-backed [NEAR Auth](https://docs.near.org/web3-apps/tutorials/near-auth.md)
+open the door to Web2-style checkout (Google sign-in, no wallet installed), which the app already
+derives keys for today.
+
+**Try it in 30 seconds:** open the [demo](https://aryann-4.github.io/bussiness-management-on-near/)
+→ *Load a sample workspace* → Invoices → *Share* → scan the QR, or switch to testnet mode and
+sign a real payment.
+
+---
+
 ## Table of contents
 
+- [The pitch](#the-pitch)
 - [What it does](#what-it-does)
 - [Live links](#live-links)
 - [Try it in 60 seconds](#try-it-in-60-seconds)
@@ -104,10 +139,15 @@ judges and visitors can explore the product without a wallet.
   deposit to the business owner. Optional **Sign in with Google** via NEAR Auth (testnet) is available on
   the checkout page when run on `http://localhost:3000` (the only callback origin the shared testnet Auth0
   client accepts); on other origins a note explains how to enable your own tenant or run locally.
+- **QR share** — the invoice row opens a share modal with a scannable QR code of the payment link,
+  a copy button and an email option (the QR library is lazy-loaded only when the modal opens).
 - Product/service catalogue with archive + delete.
 - Invoice builder with multiple line items, live totals and automatic tax.
 - Invoice lifecycle: **Draft → Sent → Paid**, or **Cancelled**.
 - One-click payment in NEAR from the UI.
+- **Multi-token payments** — a business can accept an NEP-141 fungible token (e.g. USDC on
+  testnet) for invoices. The checkout page shows a NEAR / token toggle; the token path signs a
+  real `ft_transfer_call` to the token contract with the invoice id in the memo.
 - Dashboard analytics: revenue, outstanding, customer count, invoice counts.
 - Clean, light UI designed for clarity: plain-language labels, a guided getting-started checklist,
   helpful empty states and a seeded sample workspace.
@@ -127,8 +167,11 @@ judges and visitors can explore the product without a wallet.
 - Payments require `attached_deposit == invoice.total`.
 - Paid invoices are immutable; cancelled invoices cannot be paid.
 - NEP-297 style `EVENT_JSON` logs for `business_created`, `customer_added`, `product_added`,
-  `invoice_created` and `invoice_paid`.
-- 6 Rust unit tests.
+  `invoice_created`, `invoice_paid` and `invoice_paid_token`.
+- NEP-141 support: accept a fungible token for invoices (`set_accepted_token`), receive payments
+  through `ft_on_transfer` with amount validation and overpayment refund, hold funds per
+  owner/token and let the owner withdraw them (`withdraw_ft`).
+- 12 Rust unit tests.
 
 ### Frontend
 - **Demo mode** — fully functional with local state, no wallet required.
@@ -165,6 +208,25 @@ There are exactly two authorised ways for money to move:
    NEAR Auth (Auth0). Auth0 issues a JWT, NEAR's on-chain guard verifies it, and the MPC network
    derives a unique key for that Google identity — no seed phrase, no extension, no custody. The
    account this key controls is a NEAR **universal account**.
+
+### Multi-token payments and QR share
+
+Invoices don't have to be paid in NEAR. The owner registers an NEP-141 token for the business
+(`set_accepted_token`, e.g. `usdc.fakes.testnet` with 6 decimals), and the checkout page shows a
+**NEAR / USDC toggle**:
+
+- The token path signs a real `ft_transfer_call` on the token contract with the memo
+  `pay:<owner>:<invoice_id>`.
+- The contract verifies the token is accepted, converts the invoice total from the 10²⁴
+  whole-unit scale into the token's base units **on-chain** (rounding up so the customer can
+  never underpay), flips the invoice to `Paid`, and refunds any overpayment by the NEP-141
+  return-value mechanism.
+- Funds are held per owner/token; the owner withdraws them with `withdraw_ft` after registering
+  with the token contract.
+
+Every open invoice also has a **Share** button that opens a QR code of its payment link —
+customers scan it with any phone camera and land straight on checkout. The QR library is
+lazy-loaded, so it costs nothing until someone actually shares.
 
 ### What "guest" means here — and what it does not mean (yet)
 
@@ -313,12 +375,17 @@ Dashboard  { business, customers, products, invoices, revenue,
 | `create_invoice(customer_id, items, due_days)` | — | Create an invoice; totals computed on-chain. |
 | `set_invoice_status(invoice_id, status)` | — | Move draft → sent, or cancel. |
 | `pay_invoice(owner_id, invoice_id)` | `total` | Pay a sent/draft invoice; funds forwarded to owner. |
+| `set_accepted_token(token, decimals)` | — | Accept an NEP-141 token for invoice payments (owner only). |
+| `clear_accepted_token()` | — | Stop accepting token payments. |
+| `ft_on_transfer(sender_id, amount, msg)` | — | NEP-141 receiver: msg `pay:<owner>:<invoice_id>`; marks paid, refunds overpayment. |
+| `withdraw_ft(token)` | `1 yocto` | Withdraw held token payments to the owner. |
 
 ### Views
 
 | Method | Returns |
 | --- | --- |
-| `get_dashboard(account_id)` | Full `Dashboard` or `null` |
+| `get_dashboard(account_id)` | Full `Dashboard` (incl. `accepted_token`) or `null` |
+| `get_ft_balance(owner_id, token)` | Token base units held by the contract for the owner |
 | `get_business(account_id)` | `Business` or `null` |
 | `has_business(account_id)` | `bool` |
 | `list_customers(account_id)` | `Customer[]` |

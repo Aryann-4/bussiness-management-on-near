@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   connectWallet,
-  getBusiness,
-  getInvoice,
+  fetchDashboard,
+  getFtMetadata,
   live,
   restoreWallet,
+  type FtMetadata,
 } from "../near";
 import { guestSignIn, guestSignInAvailable, guestSignOut } from "../guest";
-import { shortAccount } from "../money";
-import { formatDate, formatNear } from "../money";
+import { formatDate, formatNear, formatToken, shortAccount, totalToTokenUnits } from "../money";
 import { Icon } from "../components/Icon";
 import { Logo } from "../components/Logo";
 import { StatusBadge } from "../components/ui";
@@ -40,6 +40,11 @@ export default function Pay({
   const [guestBusy, setGuestBusy] = useState(false);
   const [guestBusyError, setGuestBusyError] = useState<string | null>(null);
   const [guestPublicKey, setGuestPublicKey] = useState<string | null>(null);
+  const [acceptedToken, setAcceptedToken] = useState<{ account: string; decimals: number } | null>(
+    null,
+  );
+  const [tokenMeta, setTokenMeta] = useState<FtMetadata | null>(null);
+  const [payKind, setPayKind] = useState<"near" | "token">("near");
 
   const signInWithGoogle = async () => {
     setGuestBusy(true);
@@ -71,33 +76,45 @@ export default function Pay({
     setLoading(true);
     setError(null);
 
-    Promise.allSettled([
-      getInvoice(ownerId, invoiceId),
-      getBusiness(ownerId),
-      restoreWallet(),
-    ]).then(([invoiceResult, businessResult, accountResult]) => {
-      if (cancelled) return;
-      const inv =
-        invoiceResult.status === "fulfilled" ? invoiceResult.value : null;
-      const biz =
-        businessResult.status === "fulfilled" ? businessResult.value : null;
-      const acc =
-        accountResult.status === "fulfilled" ? accountResult.value : null;
-
-      setInvoice(inv);
-      setBusiness(biz);
-      setAccount(acc);
-      setLoading(false);
-
-      if (!inv) {
-        setError("This payment link is invalid or the invoice was removed.");
-      }
-    });
+    // One RPC call gives us the invoice, business profile and accepted token.
+    fetchDashboard(ownerId)
+      .then((dash) => {
+        if (cancelled) return;
+        const inv = dash?.invoices.find((candidate) => candidate.id === invoiceId) ?? null;
+        setInvoice(inv);
+        setBusiness(dash?.business ?? null);
+        if (dash?.accepted_token) {
+          setAcceptedToken(dash.accepted_token);
+          getFtMetadata(dash.accepted_token.account).then((meta) => {
+            if (!cancelled) setTokenMeta(meta);
+          });
+        }
+        setLoading(false);
+        if (!inv) {
+          setError("This payment link is invalid or the invoice was removed.");
+        }
+      })
+      .catch((_) => {
+        if (cancelled) return;
+        setLoading(false);
+        setError("Could not load this invoice. Please try again in a moment.");
+      });
 
     return () => {
       cancelled = true;
     };
   }, [ownerId, invoiceId]);
+
+  // Restore a previously connected wallet without blocking the first render.
+  useEffect(() => {
+    let cancelled = false;
+    restoreWallet().then((acc) => {
+      if (!cancelled && acc) setAccount(acc);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const pay = async () => {
     if (!invoice) return;
@@ -113,7 +130,13 @@ export default function Pay({
         }
         setAccount(acc);
       }
-      const result = await live.payInvoice(ownerId, invoiceId, invoice.total);
+      let result;
+      if (payKind === "token" && acceptedToken) {
+        const amount = totalToTokenUnits(invoice.total, acceptedToken.decimals);
+        result = await live.payInvoiceFt(ownerId, invoiceId, acceptedToken.account, amount);
+      } else {
+        result = await live.payInvoice(ownerId, invoiceId, invoice.total);
+      }
       const hash =
         (result as any)?.transaction?.hash ??
         (result as any)?.transactionHash ??
@@ -133,6 +156,15 @@ export default function Pay({
   };
 
   const paid = txHash !== null || invoice?.status === "Paid";
+  const tokenSymbol = tokenMeta?.symbol ?? "tokens";
+  const tokenAmount = acceptedToken
+    ? totalToTokenUnits(invoice?.total ?? "0", acceptedToken.decimals)
+    : "0";
+  const payLabel = invoice
+    ? payKind === "token" && acceptedToken
+      ? formatToken(tokenAmount, acceptedToken.decimals, tokenSymbol)
+      : formatNear(invoice.total, business?.currency)
+    : "";
 
   return (
     <div className="app pay-page">
@@ -283,6 +315,31 @@ export default function Pay({
               </div>
             ) : (
               <>
+                {acceptedToken && (
+                  <div className="token-picker" role="radiogroup" aria-label="Payment currency">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={payKind === "near"}
+                      className={`checkout-tab ${payKind === "near" ? "active" : ""}`}
+                      onClick={() => setPayKind("near")}
+                    >
+                      <Icon name="wallet" size={14} />
+                      NEAR
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={payKind === "token"}
+                      className={`checkout-tab ${payKind === "token" ? "active" : ""}`}
+                      onClick={() => setPayKind("token")}
+                    >
+                      <Icon name="card" size={14} />
+                      {tokenSymbol}
+                    </button>
+                  </div>
+                )}
+
                 <div
                   className="checkout-toggle"
                   role="tablist"
@@ -329,7 +386,7 @@ export default function Pay({
                       </p>
                       <button className="btn primary block" onClick={pay} disabled={busy}>
                         <Icon name="card" size={16} />
-                        {busy ? "Waiting for wallet…" : `Connect wallet & pay ${formatNear(invoice.total, business?.currency)}`}
+                        {busy ? "Waiting for wallet…" : `Connect wallet & pay ${payLabel}`}
                       </button>
                       <button className="btn ghost block" onClick={signOutGuest} style={{ marginTop: 8 }}>
                         Switch account
@@ -392,7 +449,7 @@ export default function Pay({
                     {busy
                       ? "Waiting for wallet…"
                       : account
-                        ? `Pay ${formatNear(invoice.total, business?.currency)}`
+                        ? `Pay ${payLabel}`
                         : "Connect wallet & pay"}
                   </button>
                 )}
@@ -400,10 +457,21 @@ export default function Pay({
             )}
 
             <p className="hint center" style={{ marginTop: 12 }}>
-              Paying sends NEAR{" "}
-              <span className="mono">{formatNear(invoice.total, business?.currency)}</span> to{" "}
-              <span className="mono">{ownerId}</span> via{" "}
-              <span className="mono">near-business-manager.testnet</span>.
+              {payKind === "token" && acceptedToken ? (
+                <>
+                  Paying sends <span className="mono">{payLabel}</span>{" "}
+                  (<span className="mono">{acceptedToken.account}</span>) to{" "}
+                  <span className="mono">{ownerId}</span> via{" "}
+                  <span className="mono">near-business-manager.testnet</span>.
+                </>
+              ) : (
+                <>
+                  Paying sends NEAR{" "}
+                  <span className="mono">{formatNear(invoice.total, business?.currency)}</span> to{" "}
+                  <span className="mono">{ownerId}</span> via{" "}
+                  <span className="mono">near-business-manager.testnet</span>.
+                </>
+              )}
             </p>
           </div>
         )}

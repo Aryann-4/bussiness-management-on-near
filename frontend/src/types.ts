@@ -52,9 +52,16 @@ export interface Dashboard {
   products: Product[];
   invoices: Invoice[];
   revenue: string;
+  accepted_token: AcceptedToken | null;
   next_customer_id: number;
   next_product_id: number;
   next_invoice_id: number;
+}
+
+/** Fungible token a business accepts for invoice payments. */
+export interface AcceptedToken {
+  account: string;
+  decimals: number;
 }
 
 export interface Stats {
