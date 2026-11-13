@@ -12,8 +12,7 @@
   "keywords": [],
   "type": "module",
   "dependencies": {
-    "@fast-auth-near/browser-sdk": "^1.4.2",
-    "@fast-auth-near/javascript-provider": "^1.4.1",
+    "@auth0/auth0-spa-js": "^2.30.0",
     "@near-js/transactions": "^2.5.1",
     "@near-wallet-selector/core": "^10.1.4",
     "@near-wallet-selector/here-wallet": "^10.1.4",
@@ -24,7 +23,6 @@
     "@near-wallet-selector/sender": "^10.1.4",
     "buffer": "^6.0.3",
     "canvas-confetti": "^1.9.3",
-    "near-api-js": "^7.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
