@@ -12,7 +12,6 @@
   "keywords": [],
   "type": "module",
   "dependencies": {
-    "@aurora-is-near/intents-swap-widget-standalone": "^7.31.0",
     "@auth0/auth0-spa-js": "^2.30.0",
     "@near-js/transactions": "^2.5.1",
     "@near-wallet-selector/core": "^10.1.4",
