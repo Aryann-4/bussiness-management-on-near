@@ -30,12 +30,17 @@ const FEATURED = new Set([
   "nep141:eth.omft.near",
   "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near", // USDC (eth)
   "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near", // USDT (eth)
+  "nep141:sol.omft.near", // SOL (solana)
+  "nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near", // USDC (solana)
+  "nep141:sol-c800a4bd850783ccb82c2b2c7e84175443606352.omft.near", // USDT (solana)
   "nep141:btc.omft.near",
-  "nep141:sol.omft.near",
   "nep141:base-0x4200000000000000000000000000000000000006.omft.near", // ETH (base)
   "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near", // USDC (base)
   "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near", // USDC (arb)
 ]);
+
+/** Chain display order for the grouped token picker. */
+const CHAIN_ORDER = ["eth", "sol", "base", "arb", "btc", "polygon", "ava", "ton", "trx"];
 
 const CHAIN_LABEL: Record<string, string> = {
   eth: "Ethereum",
@@ -113,15 +118,9 @@ export default function IntentsCheckout({
       .then((r) => r.json())
       .then((all: Token[]) => {
         if (cancelled) return;
-        const payable = all
-          .filter((t) => t.blockchain !== "near")
-          .sort((a, b) => {
-            const fa = FEATURED.has(a.assetId) ? 0 : 1;
-            const fb = FEATURED.has(b.assetId) ? 0 : 1;
-            return fa - fb || a.blockchain.localeCompare(b.blockchain) || a.symbol.localeCompare(b.symbol);
-          });
+        const payable = all.filter((t) => t.blockchain !== "near");
         setTokens(payable);
-        setOrigin(payable[0] ?? null);
+        setOrigin(payable.find((t) => t.assetId === "nep141:eth.omft.near") ?? payable[0] ?? null);
       })
       .catch(() => {
         if (!cancelled) setError("Could not load supported tokens. Try again shortly.");
@@ -209,11 +208,10 @@ export default function IntentsCheckout({
 
   const step = status ? STATUS_STEP[status] ?? 0 : 0;
   const originLabel = origin ? `${origin.symbol} (${CHAIN_LABEL[origin.blockchain] ?? origin.blockchain})` : "—";
-
   return (
     <div className="intents-widget-wrap">
       <p className="hint center" style={{ marginBottom: 12 }}>
-        Pay from any chain — Ethereum, Base, Bitcoin, Solana and 20+ more. NEAR
+        Pay from any chain — Ethereum, Solana, Base, Bitcoin and 20+ more. NEAR
         Intents market makers compete to fill your swap, and the exact invoice
         total settles on NEAR for the business.
       </p>
@@ -233,11 +231,17 @@ export default function IntentsCheckout({
         }}
       >
         {tokens === null && <option>Loading tokens…</option>}
-        {tokens?.map((t) => (
-          <option key={t.assetId} value={t.assetId}>
-            {t.symbol} — {CHAIN_LABEL[t.blockchain] ?? t.blockchain}
-          </option>
-        ))}
+        {tokens &&
+          groupedTokens(tokens).map(([chain, group]) => (
+            <optgroup key={chain} label={CHAIN_LABEL[chain] ?? chain}>
+              {group.map((t) => (
+                <option key={t.assetId} value={t.assetId}>
+                  {t.symbol}
+                  {FEATURED.has(t.assetId) ? " ★" : ""}
+                </option>
+              ))}
+            </optgroup>
+          ))}
       </select>
 
       {invoiceHint(totalYocto)}
@@ -284,8 +288,9 @@ export default function IntentsCheckout({
       {depositAddress && (
         <div className="intents-deposit">
           <p className="field-label">
-            Send the exact amount above to this NEAR Intents deposit address
-            (any wallet works):
+            Send the exact amount above to this{" "}
+            {origin ? CHAIN_LABEL[origin.blockchain] ?? origin.blockchain : ""} deposit
+            address from any wallet — it&apos;s a native address on that chain:
           </p>
           <div className="intents-deposit-row">
             <code className="mono">{depositAddress}</code>
@@ -328,4 +333,29 @@ function invoiceHint(totalYocto: string) {
       quote is exact, no NEAR needed in your wallet.
     </p>
   );
+}
+
+/** Group tokens by chain, ordered by CHAIN_ORDER then alphabetical; featured
+ *  tokens float to the top of each chain group. */
+function groupedTokens(tokens: Token[]): Array<[string, Token[]]> {
+  const byChain = new Map<string, Token[]>();
+  for (const t of tokens) {
+    const list = byChain.get(t.blockchain) ?? [];
+    list.push(t);
+    byChain.set(t.blockchain, list);
+  }
+  const order = (c: string) => {
+    const i = CHAIN_ORDER.indexOf(c);
+    return i === -1 ? CHAIN_ORDER.length : i;
+  };
+  return [...byChain.entries()]
+    .sort((a, b) => order(a[0]) - order(b[0]) || a[0].localeCompare(b[0]))
+    .map(([chain, group]) => [
+      chain,
+      group.sort(
+        (a, b) =>
+          (FEATURED.has(b.assetId) ? 1 : 0) - (FEATURED.has(a.assetId) ? 1 : 0) ||
+          a.symbol.localeCompare(b.symbol),
+      ),
+    ]);
 }
