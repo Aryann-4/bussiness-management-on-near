@@ -3,11 +3,13 @@
 **Customers, products, invoices and NEAR payments in one on-chain dashboard — built for online businesses.**
 
 [![Live demo](https://img.shields.io/badge/live%20demo-GitHub%20Pages-6ee7b7)](https://aryann-4.github.io/bussiness-management-on-near/)
+[![Demo video](https://img.shields.io/badge/demo%20video-watch%20walkthrough-ef4444)](https://drive.google.com/file/d/1PzT8VBWy0_fkLxCFMaPzKVEKSFnBTLOo/view?usp=sharing)
 [![Contract](https://img.shields.io/badge/NEAR%20testnet-near--business--manager.testnet-60a5fa)](https://explorer.testnet.near.org/accounts/near-business-manager.testnet)
 [![Tests](https://img.shields.io/badge/contract%20tests-12%20passing-34d399)](contracts/near-business/src/lib.rs)
 [![Built for](https://img.shields.io/badge/NEAR%20Hackathon-2026-a78bfa)](#hackathon-track-alignment)
 
 > **Demo:** <https://aryann-4.github.io/bussiness-management-on-near/>
+> **Video walkthrough:** [watch the demo](https://drive.google.com/file/d/1PzT8VBWy0_fkLxCFMaPzKVEKSFnBTLOo/view?usp=sharing)
 > The demo opens in **demo mode** — a complete, clickable workspace backed by local state. Switch to **NEAR testnet** in the header to sign real transactions with a testnet wallet.
 
 ---
@@ -51,6 +53,7 @@ sign a real payment.
 - [The pitch](#the-pitch)
 - [What it does](#what-it-does)
 - [Live links](#live-links)
+- [Screenshots](#screenshots)
 - [Try it in 60 seconds](#try-it-in-60-seconds)
 - [Features](#features)
 - [Payments and guest checkout](#payments-and-guest-checkout)
@@ -107,9 +110,30 @@ judges and visitors can explore the product without a wallet.
 | What | Where |
 | --- | --- |
 | **Demo app** | <https://aryann-4.github.io/bussiness-management-on-near/> |
+| **Demo video** | [Watch the walkthrough](https://drive.google.com/file/d/1PzT8VBWy0_fkLxCFMaPzKVEKSFnBTLOo/view?usp=sharing) |
 | **Contract account** | [`near-business-manager.testnet`](https://explorer.testnet.near.org/accounts/near-business-manager.testnet) |
 | **Source** | <https://github.com/Aryann-4/bussiness-management-on-near> |
 | **Contract wasm** | `contracts/near-business/target/wasm32-unknown-unknown/release/near_business.wasm` |
+
+---
+
+## Screenshots
+
+| Dashboard | Invoices |
+| --- | --- |
+| ![Dashboard — revenue, outstanding, recent invoices](docs/screenshots/02-dashboard.png) | ![Invoice list with status badges and share](docs/screenshots/03-invoices.png) |
+
+| Customers | Products & services |
+| --- | --- |
+| ![Customer directory](docs/screenshots/04-customers.png) | ![Product catalogue](docs/screenshots/05-products.png) |
+
+| Checkout — NEAR / USDC | Checkout — pay from any chain |
+| --- | --- |
+| ![Payment page with NEAR and token rails](docs/screenshots/06-checkout-near.png) | ![Cross-chain checkout via NEAR Intents](docs/screenshots/07-checkout-any-chain.png) |
+
+| Landing | Mobile |
+| --- | --- |
+| ![Onboarding and landing page](docs/screenshots/01-landing.png) | ![Responsive mobile dashboard](docs/screenshots/08-mobile-dashboard.png) |
 
 ---
 
@@ -489,10 +513,12 @@ real transactions.
 
 | Track | How this project qualifies |
 | --- | --- |
-| **Real world** | A working back-office for online businesses: customers, catalogue, invoicing and settlement. |
-| **DeFi** | Native NEAR payments with exact-amount enforcement, revenue accounting and outstanding balances. |
+| **Real-World Money** ⭐ | A working back-office for real businesses: invoicing, exact-amount settlement, stablecoin payments and cross-chain checkout that lands in one currency. |
+| **Autonomous Business** | Contract-enforced accounting (on-chain tax math, immutable paid invoices, derived revenue) plus one-approval workspace setup — the operating layer a business runs on. |
+| **Unstoppable DeFi** | Permissionless payment rails: no custodian, no processor; funds reach the owner atomically in the same transaction, and cross-chain settlement goes through NEAR Intents market makers. |
+| **Chain abstraction** | Payers use Ethereum, Solana, Base, Bitcoin and 20+ chains; the business receives NEAR. No bridging steps in the customer's flow. |
 | **Web2 onboarding** | Optional *Sign in with Google* guest checkout on the payment link, powered by NEAR Auth / Auth0 (testnet) — no seed phrase needed to identify the payer. |
-| **Privacy** | Roadmap: confidential invoice amounts and customer identities using the commitment pattern from [`near-privacy-bridge`](https://github.com/Aryann-4/NEAR-privacy-bridge). |
+| **Privacy (roadmap)** | Confidential invoice amounts and customer identities using the commitment pattern from [`near-privacy-bridge`](https://github.com/Aryann-4/NEAR-privacy-bridge). |
 
 ---
 
@@ -534,6 +560,17 @@ real transactions.
 3. **Then** — private invoices (commitments), multi-business workspaces, recurring invoices,
    analytics charts, email notifications.
 4. **Later** — mainnet hardening, NEAR Fast Auth production credentials, external audit.
+
+---
+
+## Keywords
+
+`NEAR Protocol` · `NEAR testnet` · `smart contract` · `Rust` · `near-sdk` · `WebAssembly` ·
+`invoicing` · `billing` · `payments` · `stablecoin payments` · `NEP-141` · `USDC` ·
+`NEAR Intents` · `1Click API` · `cross-chain` · `chain abstraction` · `DeFi` ·
+`real-world money` · `autonomous business` · `QR payments` · `payment links` ·
+`NEAR Auth` · `Fast Auth` · `MPC` · `wallet selector` · `React` · `TypeScript` · `Vite` ·
+`GitHub Pages` · `hackathon` · `dApp` · `Web3` · `business management` · `on-chain accounting`
 
 ---
 
