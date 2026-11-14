@@ -522,12 +522,17 @@ real transactions.
 
 1. **Done** — contract, unit tests, testnet deployment, demo + live frontend, GitHub Pages demo.
    Payment links with a customer-facing checkout page, lazy-loaded Google sign-in via NEAR Auth
-   (testnet) as guest identification, one-click payment that settles on-chain.
-2. **Next** — full one-tap guest checkout: Google sign-in → NEP-366 meta-transaction → NEAR
-   Universal Account auto-creation (needs relayer-assisted account creation), partial payments,
-   refunds, PDF export.
+   (testnet) as guest identification, one-click payment that settles on-chain, NEP-141
+   multi-token payments with QR share, and **cross-chain checkout via NEAR Intents** (the
+   "Any chain" tab quotes the invoice through the 1Click API and gives the customer a
+   deposit address — pay from Ethereum, Base, Bitcoin, Solana and 20+ other chains;
+   the exact wNEAR total settles on NEAR, tracked live with a status stepper).
+2. **Next** — auto-redeem the Intents settlement into `pay_invoice` (a watch-relayer that
+   claims the owner's wNEAR and pays the invoice on-chain), full one-tap guest checkout:
+   Google sign-in → NEP-366 meta-transaction → NEAR Universal Account auto-creation,
+   partial payments, refunds, PDF export.
 3. **Then** — private invoices (commitments), multi-business workspaces, recurring invoices,
-   multi-token payments (NEP-141 stablecoins), analytics charts, email notifications.
+   analytics charts, email notifications.
 4. **Later** — mainnet hardening, NEAR Fast Auth production credentials, external audit.
 
 ---

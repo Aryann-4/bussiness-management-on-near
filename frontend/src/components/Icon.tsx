@@ -20,7 +20,9 @@ export type IconName =
   | "clock"
   | "shield"
   | "sun"
-  | "moon";
+  | "moon"
+  | "globe"
+  | "copy";
 
 const PATHS: Record<IconName, ReactNode> = {
   home: (
@@ -135,6 +137,18 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   moon: <path d="M20.4 14.4A8.6 8.6 0 0 1 9.6 3.6a8.8 8.8 0 1 0 10.8 10.8z" />,
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.6 2.5 4 5.7 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.7-4-9s1.4-6.5 4-9z" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+    </>
+  ),
 };
 
 export function Icon({

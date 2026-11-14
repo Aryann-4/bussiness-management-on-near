@@ -2841,3 +2841,113 @@ body {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* ------------------------------------------------------------------ */
+/* Intents widget wrapper                                              */
+/* ------------------------------------------------------------------ */
+
+.intents-widget-wrap {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.intents-token-select {
+  width: 100%;
+  appearance: auto;
+}
+
+.intents-quote {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 4px 12px;
+}
+
+.intents-quote-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.intents-quote-row:last-child {
+  border-bottom: 0;
+}
+
+.intents-quote-row strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.intents-deposit {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--surface);
+}
+
+.intents-deposit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.intents-deposit-row code {
+  font-size: 0.76rem;
+  word-break: break-all;
+  color: var(--text);
+}
+
+.intents-status {
+  margin-top: 12px;
+}
+
+.intents-steps {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.intents-step {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.3s ease;
+}
+
+.intents-step.done {
+  background: var(--accent, #00c08b);
+}
+
+.intents-step.now {
+  animation: intents-pulse 1.4s ease infinite;
+}
+
+@keyframes intents-pulse {
+  0%,
+  100% {
+    background: var(--border);
+  }
+  50% {
+    background: var(--accent, #00c08b);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intents-step.now {
+    animation: none;
+    background: var(--accent, #00c08b);
+  }
+}

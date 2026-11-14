@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import {
+import { useEffect, useState } from "react";import {
   connectWallet,
   fetchDashboard,
   getFtMetadata,
@@ -12,8 +11,8 @@ import { formatDate, formatNear, formatToken, shortAccount, totalToTokenUnits } 
 import { Icon } from "../components/Icon";
 import { Logo } from "../components/Logo";
 import { StatusBadge } from "../components/ui";
+import IntentsCheckout from "../components/IntentsCheckout";
 import type { Business, Invoice } from "../types";
-
 /**
  * Customer-facing payment page, opened via a shareable link:
  *   ?pay=<business_owner_account>:<invoice_id>
@@ -44,7 +43,7 @@ export default function Pay({
     null,
   );
   const [tokenMeta, setTokenMeta] = useState<FtMetadata | null>(null);
-  const [payKind, setPayKind] = useState<"near" | "token">("near");
+  const [payKind, setPayKind] = useState<"near" | "token" | "intents">("near");
 
   const signInWithGoogle = async () => {
     setGuestBusy(true);
@@ -315,18 +314,18 @@ export default function Pay({
               </div>
             ) : (
               <>
-                {acceptedToken && (
-                  <div className="token-picker" role="radiogroup" aria-label="Payment currency">
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={payKind === "near"}
-                      className={`checkout-tab ${payKind === "near" ? "active" : ""}`}
-                      onClick={() => setPayKind("near")}
-                    >
-                      <Icon name="wallet" size={14} />
-                      NEAR
-                    </button>
+                <div className="token-picker" role="radiogroup" aria-label="Payment currency">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={payKind === "near"}
+                    className={`checkout-tab ${payKind === "near" ? "active" : ""}`}
+                    onClick={() => setPayKind("near")}
+                  >
+                    <Icon name="wallet" size={14} />
+                    NEAR
+                  </button>
+                  {acceptedToken && (
                     <button
                       type="button"
                       role="radio"
@@ -337,10 +336,20 @@ export default function Pay({
                       <Icon name="card" size={14} />
                       {tokenSymbol}
                     </button>
-                  </div>
-                )}
+                  )}
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={payKind === "intents"}
+                    className={`checkout-tab ${payKind === "intents" ? "active" : ""}`}
+                    onClick={() => setPayKind("intents")}
+                  >
+                    <Icon name="globe" size={14} />
+                    Any chain
+                  </button>
+                </div>
 
-                <div
+                {payKind !== "intents" && (<><div
                   className="checkout-toggle"
                   role="tablist"
                   aria-label="Checkout method"
@@ -453,11 +462,21 @@ export default function Pay({
                         : "Connect wallet & pay"}
                   </button>
                 )}
+                </>)}
               </>
             )}
 
+            {payKind === "intents" && invoice && (
+              <IntentsCheckout ownerId={ownerId} totalYocto={invoice.total} />
+            )}
+
             <p className="hint center" style={{ marginTop: 12 }}>
-              {payKind === "token" && acceptedToken ? (
+              {payKind === "intents" ? (
+                <>
+                  Cross-chain payments settle through NEAR Intents — the business
+                  receives the exact invoice total on NEAR, no bridging steps needed.
+                </>
+              ) : payKind === "token" && acceptedToken ? (
                 <>
                   Paying sends <span className="mono">{payLabel}</span>{" "}
                   (<span className="mono">{acceptedToken.account}</span>) to{" "}
