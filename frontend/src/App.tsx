@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, Run, Tab, Toast } from "./appTypes";
 import type { Dashboard } from "./types";
 import * as demo from "./demoStore";
-import { seedDashboard } from "./seed";
+import { liveSampleSpec, seedDashboard } from "./seed";
 import {
   connectWallet,
   CONTRACT_ID,
@@ -249,7 +249,25 @@ export default function App() {
     });
   };
 
-  const loadSample = () => {
+  const loadSample = async () => {
+    if (mode === "live") {
+      if (!account) {
+        notify("error", "Connect a NEAR wallet first");
+        return;
+      }
+      setBusy(true);
+      try {
+        await live.setupWorkspace(liveSampleSpec);
+        await refreshLive(account);
+        setTab("overview");
+        notify("success", "Workspace created — 13 calls, one signature");
+      } catch (error) {
+        notify("error", error instanceof Error ? error.message : String(error));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     const seeded = seedDashboard();
     demo.saveDemo(seeded);
     setDashboard(seeded);

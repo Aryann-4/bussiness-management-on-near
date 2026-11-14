@@ -89,11 +89,17 @@ export default function Onboarding({
           </li>
         </ul>
 
-        {mode === "demo" && (
-          <button type="button" className="btn subtle" onClick={onSample}>
-            <Icon name="spark" size={16} />
-            Explore with sample data
-          </button>
+        <button type="button" className="btn subtle" onClick={onSample} disabled={busy}>
+          <Icon name="spark" size={16} />
+          {mode === "demo"
+            ? "Explore with sample data"
+            : "Set up sample workspace — one approval"}
+        </button>
+        {mode === "live" && (
+          <p className="hint" style={{ marginTop: 6 }}>
+            Creates the profile, 3 customers, 3 products and 3 invoices (one
+            paid) in a single batched transaction — the wallet asks once.
+          </p>
         )}
       </section>
 

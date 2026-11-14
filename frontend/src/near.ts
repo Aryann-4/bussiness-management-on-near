@@ -287,6 +287,43 @@ export async function callContract(method: string, options: CallOptions = {}) {
   return result;
 }
 
+/**
+ * Several contract calls bundled into ONE transaction — the wallet asks for
+ * approval exactly once and all actions execute atomically in order. Used by
+ * the one-approval workspace setup (business + customers + products + invoices
+ * in a single signature).
+ *
+ * Total attached gas across actions must stay under the ~300 Tgas
+ * per-transaction cap, so each simple call carries a small budget.
+ */
+type BatchOp = {
+  method: string;
+  args?: Record<string, unknown>;
+  deposit?: string;
+  gas?: string;
+};
+
+export async function callContractBatch(ops: BatchOp[]) {
+  const s = await initWallet();
+  if (!wallet) wallet = await s.wallet();
+  const accountId = s.store.getState().accounts[0]?.accountId;
+  if (!accountId) throw new Error("Connect a NEAR wallet first");
+
+  const result = await wallet.signAndSendTransaction({
+    signerId: accountId,
+    receiverId: CONTRACT_ID,
+    actions: ops.map((op) =>
+      signAction!(
+        op.method,
+        op.args ?? {},
+        BigInt(op.gas ?? "20000000000000"),
+        BigInt(op.deposit ?? "0"),
+      ),
+    ),
+  });
+  return result;
+}
+
 // -- typed helpers ---------------------------------------------------------
 
 export const live = {
@@ -381,4 +418,76 @@ export const live = {
 
   getFtBalance: (owner_id: string, token: string) =>
     view<string>("get_ft_balance", { owner_id, token }),
+
+  /**
+   * One-approval workspace setup: business profile, all customers, all
+   * products and every invoice in a single batched transaction. Invoice ids
+   * are assigned sequentially (1, 2, …) so status/payment steps can reference
+   * them by position.
+   */
+  setupWorkspace: async (spec: {
+    business: { name: string; handle: string; email: string; currency: string; tax_bps: number };
+    customers: Array<{ name: string; email: string }>;
+    products: Array<{ name: string; price_yocto: string }>;
+    invoices: Array<{
+      customer_id: number;
+      items: Array<{ description: string; quantity: number; unit_price: string }>;
+      due_days: number;
+      status?: "Sent";
+      pay?: boolean;
+    }>;
+  }) => {
+    const s = await initWallet();
+    if (!wallet) wallet = await s.wallet();
+    const accountId = s.store.getState().accounts[0]?.accountId;
+    if (!accountId) throw new Error("Connect a NEAR wallet first");
+
+    const ops: Array<{ method: string; args?: Record<string, unknown>; deposit?: string; gas?: string }> = [
+      {
+        method: "create_business",
+        args: {
+          name: spec.business.name,
+          handle: spec.business.handle,
+          email: spec.business.email,
+          currency: spec.business.currency,
+          tax_bps: spec.business.tax_bps,
+        },
+      },
+      ...spec.customers.map((c) => ({
+        method: "add_customer",
+        args: { name: c.name, email: c.email },
+      })),
+      ...spec.products.map((p) => ({
+        method: "add_product",
+        args: { name: p.name, price: p.price_yocto },
+      })),
+    ];
+
+    spec.invoices.forEach((inv, index) => {
+      const invoiceId = index + 1; // ids start at 1 and increment per business
+      ops.push({
+        method: "create_invoice",
+        args: { customer_id: inv.customer_id, items: inv.items, due_days: inv.due_days },
+      });
+      if (inv.status) {
+        ops.push({ method: "set_invoice_status", args: { invoice_id: invoiceId, status: inv.status } });
+      }
+      if (inv.pay) {
+        // Mirror the contract's math: total = subtotal + floor(subtotal * tax / 10000).
+        const subtotal = inv.items.reduce(
+          (acc, it) => acc + BigInt(it.unit_price) * BigInt(it.quantity),
+          0n,
+        );
+        const total = subtotal + (subtotal * BigInt(spec.business.tax_bps)) / 10000n;
+        ops.push({
+          method: "pay_invoice",
+          args: { owner_id: accountId, invoice_id: invoiceId },
+          deposit: total.toString(),
+          gas: "60000000000000",
+        });
+      }
+    });
+
+    return callContractBatch(ops);
+  },
 };
